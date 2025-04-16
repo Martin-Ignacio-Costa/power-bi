@@ -12,7 +12,7 @@ def imports():
 
 
 @app.cell
-def settings(ibis):
+def sql_settings(ibis):
     sqlserver_host = "localhost"
     sqlserver_db = "AdventureWorksDW2020"
     sqlserver_user = "mcosta"
@@ -28,8 +28,6 @@ def settings(ibis):
         driver=sqlserver_driver,
         port=sqlserver_port,
     )
-
-    con.sql("SELECT * FROM DimDate").execute()
     return (
         con,
         sqlserver_db,
@@ -42,13 +40,43 @@ def settings(ibis):
 
 
 @app.cell
-def _(mo):
-    _df = mo.sql(
-        f"""
+def db_tables():
+    table_date = "DimDate"
+    table_resellersales = "FactResellerSales"
+    table_internetsales = "FactInternetSales"
+    return table_date, table_internetsales, table_resellersales
 
-        """
-    )
+
+@app.cell
+def table_queries(con, table_date):
+    query_table_date = con.sql(f'SELECT * FROM {table_date}').execute()
+    return (query_table_date,)
+
+
+@app.cell
+def _(query_table_date):
+    query_table_date
     return
+
+
+@app.cell
+def _(con, table_date, table_internetsales, table_resellersales):
+    internet_sales = con.sql(f"""SELECT SUM(i.SalesAmount) AS TotalSales
+    FROM {table_internetsales} AS i
+    JOIN {table_date} AS d
+    ON i.OrderDateKey = d.DateKey
+    WHERE d.FiscalYear = 2020
+    """).execute()
+
+    reseller_sales = con.sql(f"""SELECT SUM(i.SalesAmount) AS TotalSales
+    FROM {table_resellersales} AS i
+    JOIN {table_date} AS d
+    ON i.OrderDateKey = d.DateKey
+    WHERE d.FiscalYear = 2020
+    """).execute()
+
+    internet_sales + reseller_sales
+    return internet_sales, reseller_sales
 
 
 if __name__ == "__main__":
