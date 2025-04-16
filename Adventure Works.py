@@ -46,19 +46,45 @@ def quick_queries(con, table_date, table_internetsales, table_resellersales):
 
 
 @app.cell
-def _(con, table_date, table_internetsales, table_resellersales):
+def inputs(mo):
+    input_fiscal_year = mo.ui.dropdown(
+        options={
+            "FY2018": "2018",
+            "FY2019": "2019",
+            "FY2020": "2020",
+        },
+        value="FY2018",
+        label="Fiscal Year: ",
+    )
+    return (input_fiscal_year,)
+
+
+@app.cell
+def _(input_fiscal_year):
+    input_fiscal_year
+    return
+
+
+@app.cell
+def _(
+    con,
+    input_fiscal_year,
+    table_date,
+    table_internetsales,
+    table_resellersales,
+):
     internet_sales = con.sql(f"""SELECT ROUND(SUM(SalesAmount), 0) AS TotalInternetSales
     FROM {table_internetsales}
     JOIN {table_date}
     ON {table_internetsales}.OrderDateKey = {table_date}.DateKey
-    WHERE {table_date}.FiscalYear = 2020
+    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
     """).execute()
 
     reseller_sales = con.sql(f"""SELECT ROUND(SUM(SalesAmount), 0) AS TotalResellerSales
     FROM {table_resellersales}
     JOIN {table_date}
     ON {table_resellersales}.OrderDateKey = {table_date}.DateKey
-    WHERE {table_date}.FiscalYear = 2020
+    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
     """).execute()
 
     # Alternativa usando alias para las tablas
@@ -77,7 +103,6 @@ def _(con, table_date, table_internetsales, table_resellersales):
 @app.cell
 def _(internet_sales):
     internet_sales
-
     return
 
 
