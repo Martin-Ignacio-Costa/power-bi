@@ -1,0 +1,12 @@
+[project]
+name = "power-bi"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "altair>=5.5.0",
+    "duckdb>=1.2.2",
+    "ibis-framework[mssql]>=10.4.0",
+    "marimo>=0.12.9",
+]
