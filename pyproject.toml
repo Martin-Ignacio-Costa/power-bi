@@ -8,5 +8,7 @@ dependencies = [
     "altair>=5.5.0",
     "duckdb>=1.2.2",
     "ibis-framework[mssql]>=10.4.0",
-    "marimo>=0.12.9",
+    "marimo[lsp]>=0.12.10",
 ]
+[tool.marimo.experimental]
+lsp = true

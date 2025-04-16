@@ -1,42 +1,28 @@
 import marimo
 
-__generated_with = "0.12.9"
+__generated_with = "0.12.10"
 app = marimo.App(width="medium")
 
 
 @app.cell
 def imports():
+    import os
     import marimo as mo
     import ibis
-    return ibis, mo
+    return ibis, mo, os
 
 
 @app.cell
-def sql_settings(ibis):
-    sqlserver_host = "localhost"
-    sqlserver_db = "AdventureWorksDW2020"
-    sqlserver_user = "mcosta"
-    sqlserver_pass = "123"
-    sqlserver_port = "1433"
-    sqlserver_driver = "SQL Server"
-
+def sql_settings(ibis, os):
     con = ibis.mssql.connect(
-        user=sqlserver_user,
-        password=sqlserver_pass,
-        host=sqlserver_host,
-        database=sqlserver_db,
-        driver=sqlserver_driver,
-        port=sqlserver_port,
+        user=os.environ["SQLSERVER_USER"],
+        password=os.environ["SQLSERVER_PASS"],
+        host=os.environ["SQLSERVER_HOST"],
+        database=os.environ["SQLSERVER_DB"],
+        driver="SQL Server",
+        port=os.environ["SQLSERVER_PORT"],
     )
-    return (
-        con,
-        sqlserver_db,
-        sqlserver_driver,
-        sqlserver_host,
-        sqlserver_pass,
-        sqlserver_port,
-        sqlserver_user,
-    )
+    return (con,)
 
 
 @app.cell
@@ -48,35 +34,57 @@ def db_tables():
 
 
 @app.cell
-def table_queries(con, table_date):
-    query_table_date = con.sql(f'SELECT * FROM {table_date}').execute()
-    return (query_table_date,)
-
-
-@app.cell
-def _(query_table_date):
-    query_table_date
-    return
+def quick_queries(con, table_date, table_internetsales, table_resellersales):
+    qq_table_date = con.sql(f"SELECT * FROM {table_date}").execute()
+    qq_table_resellersales = con.sql(
+        f"SELECT * FROM {table_resellersales}"
+    ).execute()
+    qq_table_internetsales = con.sql(
+        f"SELECT * FROM {table_internetsales}"
+    ).execute()
+    return qq_table_date, qq_table_internetsales, qq_table_resellersales
 
 
 @app.cell
 def _(con, table_date, table_internetsales, table_resellersales):
-    internet_sales = con.sql(f"""SELECT SUM(i.SalesAmount) AS TotalSales
-    FROM {table_internetsales} AS i
-    JOIN {table_date} AS d
-    ON i.OrderDateKey = d.DateKey
-    WHERE d.FiscalYear = 2020
+    internet_sales = con.sql(f"""SELECT ROUND(SUM(SalesAmount), 0) AS TotalInternetSales
+    FROM {table_internetsales}
+    JOIN {table_date}
+    ON {table_internetsales}.OrderDateKey = {table_date}.DateKey
+    WHERE {table_date}.FiscalYear = 2020
     """).execute()
 
-    reseller_sales = con.sql(f"""SELECT SUM(i.SalesAmount) AS TotalSales
-    FROM {table_resellersales} AS i
-    JOIN {table_date} AS d
-    ON i.OrderDateKey = d.DateKey
-    WHERE d.FiscalYear = 2020
+    reseller_sales = con.sql(f"""SELECT ROUND(SUM(SalesAmount), 0) AS TotalResellerSales
+    FROM {table_resellersales}
+    JOIN {table_date}
+    ON {table_resellersales}.OrderDateKey = {table_date}.DateKey
+    WHERE {table_date}.FiscalYear = 2020
     """).execute()
 
-    internet_sales + reseller_sales
+    # Alternativa usando alias para las tablas
+    # reseller_sales = con.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
+    # FROM {table_resellersales} AS i
+    # JOIN {table_date} AS d
+    # ON i.OrderDateKey = d.DateKey
+    # WHERE d.FiscalYear = 2020
+    # """).execute()
+
+    internet_sales = internet_sales.iat[0, 0]
+    reseller_sales = reseller_sales.iat[0, 0]
     return internet_sales, reseller_sales
+
+
+@app.cell
+def _(internet_sales):
+    internet_sales
+
+    return
+
+
+@app.cell
+def _(reseller_sales):
+    reseller_sales
+    return
 
 
 if __name__ == "__main__":
