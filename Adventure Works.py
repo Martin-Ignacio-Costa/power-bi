@@ -93,41 +93,83 @@ def quick_queries(
 
 
 @app.cell
-def _(sqlcon, table_productcategory, table_productsubcategory):
-    category_list = sqlcon.sql(f"""
+def filter_sources(
+    mo,
+    sqlcon,
+    table_product,
+    table_productcategory,
+    table_productsubcategory,
+):
+    # Data sources for the different filtering criteria
+
+    list_fiscalyear = {
+        "FY2018": "2018",
+        "FY2019": "2019",
+        "FY2020": "2020",
+    }
+
+    input_channel_internet = mo.ui.checkbox(label="Internet", value=True)
+    input_channel_resellers = mo.ui.checkbox(label="Resellers", value=True)
+
+    list_category = sqlcon.sql(f"""
     SELECT DISTINCT EnglishProductCategoryName, ProductCategoryKey
     FROM {table_productcategory}
     ORDER BY ProductCategoryKey
     """).execute()
 
-    category_list = category_list["EnglishProductCategoryName"].to_list()
+    list_category = list_category["EnglishProductCategoryName"].to_list()
 
-    subcategory_list = sqlcon.sql(f"""
+    for category in list_category:
+        category = category.lower()
+        category_capital = category.capitalize()
+        globals()[f"input_category_{category}"] = mo.ui.checkbox(
+            label=f"{category_capital}",
+            value=True,
+        )
+
+
+    list_subcategory = sqlcon.sql(f"""
     SELECT DISTINCT EnglishProductSubcategoryName, ProductSubcategoryKey
     FROM {table_productsubcategory}
     ORDER BY ProductSubcategoryKey
     """).execute()
 
-    subcategory_list = subcategory_list["EnglishProductSubcategoryName"].to_list()
-    return category_list, subcategory_list
+    list_product = sqlcon.sql(f"""
+    SELECT DISTINCT EnglishProductName, ProductKey
+    FROM {table_product}
+    ORDER BY ProductKey
+    """).execute()
+
+    # subcategory_list = subcategory_list["EnglishProductSubcategoryName"].to_list()
+    return (
+        category,
+        category_capital,
+        input_channel_internet,
+        input_channel_resellers,
+        list_category,
+        list_fiscalyear,
+        list_product,
+        list_subcategory,
+    )
 
 
 @app.cell
-def _(subcategory_list):
-    print(subcategory_list)
+def _(input_category_accessories):
+    input_category_accessories
     return
 
 
 @app.cell
-def inputs(mo):
+def inputs(
+    input_channel_internet,
+    input_channel_resellers,
+    list_fiscalyear,
+    mo,
+):
     # User inputs for data visualization and analysis
 
     input_fiscal_year = mo.ui.dropdown(
-        options={
-            "FY2018": "2018",
-            "FY2019": "2019",
-            "FY2020": "2020",
-        },
+        options=list_fiscalyear,
         value="FY2018",
         label="Fiscal Year: ",
     )
@@ -135,8 +177,8 @@ def inputs(mo):
     input_sales_channel = mo.vstack(
         [
             mo.md("Sales channels: "),
-            mo.ui.checkbox(label="Internet", value=True),
-            mo.ui.checkbox(label="Resellers", value=True),
+            input_channel_internet,
+            input_channel_resellers,
         ],
         justify="start",
         align="start",
