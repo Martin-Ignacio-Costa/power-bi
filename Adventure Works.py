@@ -116,12 +116,14 @@ def filter_sources(
     ORDER BY ProductCategoryKey
     """).execute()
 
-    input_category = {}
-    for category in list_category["EnglishProductCategoryName"]:
-        input_category[f"{category.lower()}"] = mo.ui.checkbox(
-            label=f"{category}",
-            value=True,
-        )
+    list_category = list_category["EnglishProductCategoryName"].to_list()
+
+    # input_category = {}
+    # for category in list_category["EnglishProductCategoryName"]:
+    #     input_category[f"{category.lower()}"] = mo.ui.checkbox(
+    #         label=f"{category}",
+    #         value=True,
+    #     )
 
     # Alternate dynamic variable generation method
     # list_category = list_category["EnglishProductCategoryName"].to_list()
@@ -148,8 +150,6 @@ def filter_sources(
 
     # subcategory_list = subcategory_list["EnglishProductSubcategoryName"].to_list()
     return (
-        category,
-        input_category,
         input_channel_internet,
         input_channel_resellers,
         list_category,
@@ -160,15 +160,10 @@ def filter_sources(
 
 
 @app.cell
-def _(input_category):
-    input_category["bikes"]
-    return
-
-
-@app.cell
 def inputs(
     input_channel_internet,
     input_channel_resellers,
+    list_category,
     list_fiscalyear,
     mo,
 ):
@@ -190,72 +185,51 @@ def inputs(
         align="start",
     )
 
-    input_product_category_bikes = mo.ui.checkbox(label="Bikes", value=True)
-    input_product_category_components = mo.ui.checkbox(
-        label="Components", value=True
-    )
-    input_product_category_clothings = mo.ui.checkbox(
-        label="Clothings", value=True
-    )
-    input_product_category_accesories = mo.ui.checkbox(
-        label="Accesories", value=True
+    input_product_category = mo.ui.multiselect(
+        options=list_category,
+        value=list_category,
+        label="Product categories: ",    
     )
 
-    input_product_category = mo.vstack(
-        [
-            mo.md("Product categories: "),
-            input_product_category_bikes,
-            input_product_category_components,
-            input_product_category_clothings,
-            input_product_category_accesories,
-        ],
-        justify="start",
-        align="start",
-    )
-    return (
-        input_fiscal_year,
-        input_product_category,
-        input_product_category_accesories,
-        input_product_category_bikes,
-        input_product_category_clothings,
-        input_product_category_components,
-        input_sales_channel,
-    )
+    # input_product_category = mo.vstack(
+    #     [
+    #         mo.md("Product categories: "),
+    #         input_category
+    #     ],
+    #     justify="start",
+    #     align="start",
+    # )
+    return input_fiscal_year, input_product_category, input_sales_channel
 
 
 @app.cell
-def _(input_product_category_bikes, mo):
-    input_product_subcategory_mountainbikes = None
-    input_product_subcategory_roadbikes = None
-    input_product_subcategory_touringbikes = None
+def _():
+    # input_product_subcategory_mountainbikes = None
+    # input_product_subcategory_roadbikes = None
+    # input_product_subcategory_touringbikes = None
 
-    if input_product_category_bikes.value == True:
-        input_product_subcategory_mountainbikes = mo.ui.checkbox(
-            label="Mountain Bikes", value=True
-        )
-        input_product_subcategory_roadbikes = mo.ui.checkbox(
-            label="Road Bikes", value=True
-        )
-        input_product_subcategory_touringbikes = mo.ui.checkbox(
-            label="Touring Bikes", value=True
-        )
+    # if input_product_category_bikes.value == True:
+    #     input_product_subcategory_mountainbikes = mo.ui.checkbox(
+    #         label="Mountain Bikes", value=True
+    #     )
+    #     input_product_subcategory_roadbikes = mo.ui.checkbox(
+    #         label="Road Bikes", value=True
+    #     )
+    #     input_product_subcategory_touringbikes = mo.ui.checkbox(
+    #         label="Touring Bikes", value=True
+    #     )
 
-    input_product_subcategory = mo.vstack(
-        [
-            mo.md("Product subcategories: "),
-            input_product_subcategory_mountainbikes,
-            input_product_subcategory_roadbikes,
-            input_product_subcategory_touringbikes,
-        ],
-        justify="start",
-        align="start",
-    )
-    return (
-        input_product_subcategory,
-        input_product_subcategory_mountainbikes,
-        input_product_subcategory_roadbikes,
-        input_product_subcategory_touringbikes,
-    )
+    # input_product_subcategory = mo.vstack(
+    #     [
+    #         mo.md("Product subcategories: "),
+    #         input_product_subcategory_mountainbikes,
+    #         input_product_subcategory_roadbikes,
+    #         input_product_subcategory_touringbikes,
+    #     ],
+    #     justify="start",
+    #     align="start",
+    # )
+    return
 
 
 @app.cell
