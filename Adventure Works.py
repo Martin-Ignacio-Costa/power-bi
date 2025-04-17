@@ -1,7 +1,10 @@
 import marimo
 
 __generated_with = "0.12.10"
-app = marimo.App(width="medium")
+app = marimo.App(
+    width="medium",
+    layout_file="layouts/Adventure Works.grid.json",
+)
 
 
 @app.cell
@@ -18,6 +21,8 @@ def imports():
 
 @app.cell
 def sql_settings(ibis, os):
+    # Settings for database connections
+
     con = ibis.duckdb.connect()
     ibis.set_backend(con)
     ibis.options.interactive = True
@@ -35,6 +40,8 @@ def sql_settings(ibis, os):
 
 @app.cell
 def db_tables():
+    # List of SQL Server tables for AdventureWorksDW2020 DB
+
     table_date = "DimDate"
     table_resellersales = "FactResellerSales"
     table_internetsales = "FactInternetSales"
@@ -48,6 +55,8 @@ def quick_queries(
     table_internetsales,
     table_resellersales,
 ):
+    # Quick queries for data exploration
+
     qq_table_date = sqlcon.sql(f"SELECT * FROM {table_date}")
     qq_table_resellersales = sqlcon.sql(f"SELECT * FROM {table_resellersales}")
     qq_table_internetsales = sqlcon.sql(f"SELECT * FROM {table_internetsales}")
@@ -56,6 +65,8 @@ def quick_queries(
 
 @app.cell
 def inputs(mo):
+    # User inputs for data visualization and analysis
+
     input_fiscal_year = mo.ui.dropdown(
         options={
             "FY2018": "2018",
@@ -65,12 +76,34 @@ def inputs(mo):
         value="FY2018",
         label="Fiscal Year: ",
     )
-    return (input_fiscal_year,)
+
+    input_sales_channel_internet = mo.ui.checkbox(label="Internet", value=True)
+
+    input_sales_channel_reseller = mo.ui.checkbox(label="Resellers", value=True)
+    return (
+        input_fiscal_year,
+        input_sales_channel_internet,
+        input_sales_channel_reseller,
+    )
 
 
 @app.cell
-def _(input_fiscal_year):
-    input_fiscal_year
+def _(
+    input_fiscal_year,
+    input_sales_channel_internet,
+    input_sales_channel_reseller,
+    mo,
+):
+    mo.vstack(
+        [
+            input_fiscal_year,
+            mo.md("Sales channels: "),
+            mo.hstack(
+                [input_sales_channel_internet, input_sales_channel_reseller],
+                justify="start",
+            ),
+        ]
+    )
     return
 
 
@@ -83,12 +116,14 @@ def _(
     table_internetsales,
     table_resellersales,
 ):
+    # Channel sales
+
     if "internet_sales" in con.list_tables():
         con.drop_table("internet_sales")
     con.create_table(
         "internet_sales",
         sqlcon.sql(f"""
-        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS TotalInternetSales
+        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
         FROM {table_internetsales}
         JOIN {table_date}
         ON {table_internetsales}.OrderDateKey = {table_date}.DateKey
@@ -103,7 +138,7 @@ def _(
     con.create_table(
         "reseller_sales",
         sqlcon.sql(f"""
-        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS TotalResellerSales
+        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales
         FROM {table_resellersales}
         JOIN {table_date}
         ON {table_resellersales}.OrderDateKey = {table_date}.DateKey
@@ -114,6 +149,11 @@ def _(
     sales_channel_reseller = con.table("reseller_sales").execute().iat[0, 0]
 
     sales_channel_all = sales_channel_internet + sales_channel_reseller
+
+    # Format results with thousands and decimal separators
+    sales_channel_internet = f"{sales_channel_internet:,.0f}"
+    sales_channel_reseller = f"{sales_channel_reseller:,.0f}"
+    sales_channel_all = f"{sales_channel_all:,.0f}"
 
     # Alternativa usando alias para las tablas
     # reseller_sales = sqlcon.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
@@ -140,6 +180,12 @@ def _(sales_channel_reseller):
 @app.cell
 def _(sales_channel_all):
     sales_channel_all
+    return
+
+
+@app.cell
+def _(mo, sales_channel_all):
+    mo.callout(f"Sales ${sales_channel_all}")
     return
 
 
