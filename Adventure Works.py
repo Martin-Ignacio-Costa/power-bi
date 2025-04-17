@@ -42,10 +42,24 @@ def sql_settings(ibis, os):
 def db_tables():
     # List of SQL Server tables for AdventureWorksDW2020 DB
 
+
+    # Dimension tables
     table_date = "DimDate"
+    table_productcategory = "DimProductCategory"
+    table_productsubcategory = "DimProductSubcategory"
+    table_product = "DimProduct"
+
+    # Fact tables
     table_resellersales = "FactResellerSales"
     table_internetsales = "FactInternetSales"
-    return table_date, table_internetsales, table_resellersales
+    return (
+        table_date,
+        table_internetsales,
+        table_product,
+        table_productcategory,
+        table_productsubcategory,
+        table_resellersales,
+    )
 
 
 @app.cell
@@ -53,14 +67,55 @@ def quick_queries(
     sqlcon,
     table_date,
     table_internetsales,
+    table_product,
+    table_productcategory,
+    table_productsubcategory,
     table_resellersales,
 ):
     # Quick queries for data exploration
 
     qq_table_date = sqlcon.sql(f"SELECT * FROM {table_date}")
+    qq_table_productcategory = sqlcon.sql(f"SELECT * FROM {table_productcategory}")
+    qq_table_productsubcategory = sqlcon.sql(
+        f"SELECT * FROM {table_productsubcategory}"
+    )
+    qq_table_product = sqlcon.sql(f"SELECT * FROM {table_product}")
     qq_table_resellersales = sqlcon.sql(f"SELECT * FROM {table_resellersales}")
     qq_table_internetsales = sqlcon.sql(f"SELECT * FROM {table_internetsales}")
-    return qq_table_date, qq_table_internetsales, qq_table_resellersales
+    return (
+        qq_table_date,
+        qq_table_internetsales,
+        qq_table_product,
+        qq_table_productcategory,
+        qq_table_productsubcategory,
+        qq_table_resellersales,
+    )
+
+
+@app.cell
+def _(sqlcon, table_productcategory, table_productsubcategory):
+    category_list = sqlcon.sql(f"""
+    SELECT DISTINCT EnglishProductCategoryName, ProductCategoryKey
+    FROM {table_productcategory}
+    ORDER BY ProductCategoryKey
+    """).execute()
+
+    category_list = category_list["EnglishProductCategoryName"].to_list()
+
+    subcategory_list = sqlcon.sql(f"""
+    SELECT DISTINCT EnglishProductSubcategoryName, ProductSubcategoryKey
+    FROM {table_productsubcategory}
+    ORDER BY ProductSubcategoryKey
+    """).execute()
+
+    subcategory_list = subcategory_list["EnglishProductSubcategoryName"].to_list()
+    return category_list, subcategory_list
+
+
+@app.cell
+def _(subcategory_list):
+    print(subcategory_list)
+    return
 
 
 @app.cell
@@ -121,14 +176,49 @@ def inputs(mo):
 
 
 @app.cell
+def _(input_product_category_bikes, mo):
+    input_product_subcategory_mountainbikes = None
+    input_product_subcategory_roadbikes = None
+    input_product_subcategory_touringbikes = None
+
+    if input_product_category_bikes.value == True:
+        input_product_subcategory_mountainbikes = mo.ui.checkbox(
+            label="Mountain Bikes", value=True
+        )
+        input_product_subcategory_roadbikes = mo.ui.checkbox(
+            label="Road Bikes", value=True
+        )
+        input_product_subcategory_touringbikes = mo.ui.checkbox(
+            label="Touring Bikes", value=True
+        )
+
+    input_product_subcategory = mo.vstack(
+        [
+            mo.md("Product subcategories: "),
+            input_product_subcategory_mountainbikes,
+            input_product_subcategory_roadbikes,
+            input_product_subcategory_touringbikes,
+        ],
+        justify="start",
+        align="start",
+    )
+    return (
+        input_product_subcategory,
+        input_product_subcategory_mountainbikes,
+        input_product_subcategory_roadbikes,
+        input_product_subcategory_touringbikes,
+    )
+
+
+@app.cell
 def _(input_product_category):
     input_product_category
     return
 
 
 @app.cell
-def _(input_product_category_bikes):
-    input_product_category_bikes.value
+def _(input_product_subcategory):
+    input_product_subcategory
     return
 
 
