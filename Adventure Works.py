@@ -20,6 +20,7 @@ def imports():
 def sql_settings(ibis, os):
     con = ibis.duckdb.connect()
     ibis.set_backend(con)
+    ibis.options.interactive = True
 
     sqlcon = ibis.mssql.connect(
         user=os.environ["SQLSERVER_USER"],
@@ -76,39 +77,43 @@ def _(input_fiscal_year):
 @app.cell
 def _(
     con,
-    dt,
-    ibis,
     input_fiscal_year,
     sqlcon,
     table_date,
     table_internetsales,
     table_resellersales,
 ):
-    internet_sales = sqlcon.sql(f"""
-    SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS TotalInternetSales
-    FROM {table_internetsales}
-    JOIN {table_date}
-    ON {table_internetsales}.OrderDateKey = {table_date}.DateKey
-    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-    """).execute()
-
-    reseller_sales = sqlcon.sql(f"""
-    SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS TotalResellerSales
-    FROM {table_resellersales}
-    JOIN {table_date}
-    ON {table_resellersales}.OrderDateKey = {table_date}.DateKey
-    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-    """).execute()
-
-    table_internet_sales = con.create_table(
+    if "internet_sales" in con.list_tables():
+        con.drop_table("internet_sales")
+    con.create_table(
         "internet_sales",
-        schema=ibis.schema(
-            {
-                "TotalInternetSales": dt.Decimal(13, 2),
-            }
-        ),
+        sqlcon.sql(f"""
+        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS TotalInternetSales
+        FROM {table_internetsales}
+        JOIN {table_date}
+        ON {table_internetsales}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+        """).execute(),
     )
-    tis = ibis.memtable(internet_sales)
+
+    sales_channel_internet = con.table("internet_sales").execute().iat[0, 0]
+
+    if ("reseller_sales") in con.list_tables():
+        con.drop_table("reseller_sales")
+    con.create_table(
+        "reseller_sales",
+        sqlcon.sql(f"""
+        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS TotalResellerSales
+        FROM {table_resellersales}
+        JOIN {table_date}
+        ON {table_resellersales}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+        """).execute(),
+    )
+
+    sales_channel_reseller = con.table("reseller_sales").execute().iat[0, 0]
+
+    sales_channel_all = sales_channel_internet + sales_channel_reseller
 
     # Alternativa usando alias para las tablas
     # reseller_sales = sqlcon.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
@@ -117,30 +122,24 @@ def _(
     # ON i.OrderDateKey = d.DateKey
     # WHERE d.FiscalYear = 2020
     # """).execute()
-
-    internet_sales = internet_sales.iat[0, 0]
-    # internet_sales = float(internet_sales)
-    # internet_sales = ibis.literal(internet_sales)
-    # internet_sales = internet_sales.quantize(Decimal('0.00'))
-    reseller_sales = reseller_sales.iat[0, 0]
-    return internet_sales, reseller_sales, table_internet_sales, tis
+    return sales_channel_all, sales_channel_internet, sales_channel_reseller
 
 
 @app.cell
-def _(mo, tis):
-    mo.ui.table(tis)
+def _(sales_channel_internet):
+    sales_channel_internet
     return
 
 
 @app.cell
-def _(internet_sales):
-    internet_sales
+def _(sales_channel_reseller):
+    sales_channel_reseller
     return
 
 
 @app.cell
-def _(reseller_sales):
-    reseller_sales
+def _(sales_channel_all):
+    sales_channel_all
     return
 
 
