@@ -8,13 +8,20 @@ app = marimo.App(width="medium")
 def imports():
     import os
     import marimo as mo
+    import altair as alt
+    import pandas as pd
     import ibis
-    return ibis, mo, os
+    from decimal import Decimal
+    import ibis.expr.datatypes as dt
+    return Decimal, alt, dt, ibis, mo, os, pd
 
 
 @app.cell
 def sql_settings(ibis, os):
-    con = ibis.mssql.connect(
+    con = ibis.duckdb.connect()
+    ibis.set_backend(con)
+
+    sqlcon = ibis.mssql.connect(
         user=os.environ["SQLSERVER_USER"],
         password=os.environ["SQLSERVER_PASS"],
         host=os.environ["SQLSERVER_HOST"],
@@ -22,7 +29,7 @@ def sql_settings(ibis, os):
         driver="SQL Server",
         port=os.environ["SQLSERVER_PORT"],
     )
-    return (con,)
+    return con, sqlcon
 
 
 @app.cell
@@ -34,14 +41,15 @@ def db_tables():
 
 
 @app.cell
-def quick_queries(con, table_date, table_internetsales, table_resellersales):
-    qq_table_date = con.sql(f"SELECT * FROM {table_date}").execute()
-    qq_table_resellersales = con.sql(
-        f"SELECT * FROM {table_resellersales}"
-    ).execute()
-    qq_table_internetsales = con.sql(
-        f"SELECT * FROM {table_internetsales}"
-    ).execute()
+def quick_queries(
+    sqlcon,
+    table_date,
+    table_internetsales,
+    table_resellersales,
+):
+    qq_table_date = sqlcon.sql(f"SELECT * FROM {table_date}")
+    qq_table_resellersales = sqlcon.sql(f"SELECT * FROM {table_resellersales}")
+    qq_table_internetsales = sqlcon.sql(f"SELECT * FROM {table_internetsales}")
     return qq_table_date, qq_table_internetsales, qq_table_resellersales
 
 
@@ -68,27 +76,42 @@ def _(input_fiscal_year):
 @app.cell
 def _(
     con,
+    dt,
+    ibis,
     input_fiscal_year,
+    sqlcon,
     table_date,
     table_internetsales,
     table_resellersales,
 ):
-    internet_sales = con.sql(f"""SELECT ROUND(SUM(SalesAmount), 0) AS TotalInternetSales
+    internet_sales = sqlcon.sql(f"""
+    SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS TotalInternetSales
     FROM {table_internetsales}
     JOIN {table_date}
     ON {table_internetsales}.OrderDateKey = {table_date}.DateKey
     WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
     """).execute()
 
-    reseller_sales = con.sql(f"""SELECT ROUND(SUM(SalesAmount), 0) AS TotalResellerSales
+    reseller_sales = sqlcon.sql(f"""
+    SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS TotalResellerSales
     FROM {table_resellersales}
     JOIN {table_date}
     ON {table_resellersales}.OrderDateKey = {table_date}.DateKey
     WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
     """).execute()
 
+    table_internet_sales = con.create_table(
+        "internet_sales",
+        schema=ibis.schema(
+            {
+                "TotalInternetSales": dt.Decimal(13, 2),
+            }
+        ),
+    )
+    tis = ibis.memtable(internet_sales)
+
     # Alternativa usando alias para las tablas
-    # reseller_sales = con.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
+    # reseller_sales = sqlcon.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
     # FROM {table_resellersales} AS i
     # JOIN {table_date} AS d
     # ON i.OrderDateKey = d.DateKey
@@ -96,8 +119,17 @@ def _(
     # """).execute()
 
     internet_sales = internet_sales.iat[0, 0]
+    # internet_sales = float(internet_sales)
+    # internet_sales = ibis.literal(internet_sales)
+    # internet_sales = internet_sales.quantize(Decimal('0.00'))
     reseller_sales = reseller_sales.iat[0, 0]
-    return internet_sales, reseller_sales
+    return internet_sales, reseller_sales, table_internet_sales, tis
+
+
+@app.cell
+def _(mo, tis):
+    mo.ui.table(tis)
+    return
 
 
 @app.cell
