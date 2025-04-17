@@ -115,9 +115,16 @@ def filter_sources(
     FROM {table_productcategory}
     ORDER BY ProductCategoryKey
     """).execute()
-
     list_category = list_category["EnglishProductCategoryName"].to_list()
 
+    list_subcategory = sqlcon.sql(f"""
+    SELECT DISTINCT EnglishProductSubcategoryName, ProductSubcategoryKey
+    FROM {table_productsubcategory}
+    ORDER BY ProductSubcategoryKey
+    """).execute()
+    list_subcategory = list_subcategory["EnglishProductSubcategoryName"].to_list()
+
+    # Dynamic variable generation methods
     # input_category = {}
     # for category in list_category["EnglishProductCategoryName"]:
     #     input_category[f"{category.lower()}"] = mo.ui.checkbox(
@@ -125,9 +132,7 @@ def filter_sources(
     #         value=True,
     #     )
 
-    # Alternate dynamic variable generation method
     # list_category = list_category["EnglishProductCategoryName"].to_list()
-
     # for category in list_category:
     #     category = category.lower()
     #     category_capital = category.capitalize()
@@ -135,12 +140,6 @@ def filter_sources(
     #         label=f"{category_capital}",
     #         value=True,
     #     )
-
-    list_subcategory = sqlcon.sql(f"""
-    SELECT DISTINCT EnglishProductSubcategoryName, ProductSubcategoryKey
-    FROM {table_productsubcategory}
-    ORDER BY ProductSubcategoryKey
-    """).execute()
 
     list_product = sqlcon.sql(f"""
     SELECT DISTINCT EnglishProductName, ProductKey
@@ -165,6 +164,7 @@ def inputs(
     input_channel_resellers,
     list_category,
     list_fiscalyear,
+    list_subcategory,
     mo,
 ):
     # User inputs for data visualization and analysis
@@ -188,26 +188,24 @@ def inputs(
     input_product_category = mo.ui.multiselect(
         options=list_category,
         value=list_category,
-        label="Product categories: ",    
+        label="Product categories: ",
     )
 
-    # input_product_category = mo.vstack(
-    #     [
-    #         mo.md("Product categories: "),
-    #         input_category
-    #     ],
-    #     justify="start",
-    #     align="start",
-    # )
-    return input_fiscal_year, input_product_category, input_sales_channel
+    input_product_subcategory = mo.ui.multiselect(
+        options=list_subcategory,
+        value=list_subcategory,
+        label="Product subcategories: ",
+    )
+    return (
+        input_fiscal_year,
+        input_product_category,
+        input_product_subcategory,
+        input_sales_channel,
+    )
 
 
 @app.cell
 def _():
-    # input_product_subcategory_mountainbikes = None
-    # input_product_subcategory_roadbikes = None
-    # input_product_subcategory_touringbikes = None
-
     # if input_product_category_bikes.value == True:
     #     input_product_subcategory_mountainbikes = mo.ui.checkbox(
     #         label="Mountain Bikes", value=True
@@ -229,12 +227,6 @@ def _():
     #     justify="start",
     #     align="start",
     # )
-    return
-
-
-@app.cell
-def _(input_product_category):
-    input_product_category
     return
 
 
