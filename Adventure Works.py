@@ -42,7 +42,6 @@ def sql_settings(ibis, os):
 def db_tables():
     # List of SQL Server tables for AdventureWorksDW2020 DB
 
-
     # Dimension tables
     table_date = "DimDate"
     table_productcategory = "DimProductCategory"
@@ -117,16 +116,23 @@ def filter_sources(
     ORDER BY ProductCategoryKey
     """).execute()
 
-    list_category = list_category["EnglishProductCategoryName"].to_list()
-
-    for category in list_category:
-        category = category.lower()
-        category_capital = category.capitalize()
-        globals()[f"input_category_{category}"] = mo.ui.checkbox(
-            label=f"{category_capital}",
+    input_category = {}
+    for category in list_category["EnglishProductCategoryName"]:
+        input_category[f"{category.lower()}"] = mo.ui.checkbox(
+            label=f"{category}",
             value=True,
         )
 
+    # Alternate dynamic variable generation method
+    # list_category = list_category["EnglishProductCategoryName"].to_list()
+
+    # for category in list_category:
+    #     category = category.lower()
+    #     category_capital = category.capitalize()
+    #     globals()[f"input_category_{category}"] = mo.ui.checkbox(
+    #         label=f"{category_capital}",
+    #         value=True,
+    #     )
 
     list_subcategory = sqlcon.sql(f"""
     SELECT DISTINCT EnglishProductSubcategoryName, ProductSubcategoryKey
@@ -143,7 +149,7 @@ def filter_sources(
     # subcategory_list = subcategory_list["EnglishProductSubcategoryName"].to_list()
     return (
         category,
-        category_capital,
+        input_category,
         input_channel_internet,
         input_channel_resellers,
         list_category,
@@ -154,8 +160,8 @@ def filter_sources(
 
 
 @app.cell
-def _(input_category_accessories):
-    input_category_accessories
+def _(input_category):
+    input_category["bikes"]
     return
 
 
