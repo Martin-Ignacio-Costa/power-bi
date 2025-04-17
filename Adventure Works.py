@@ -77,31 +77,68 @@ def inputs(mo):
         label="Fiscal Year: ",
     )
 
-    input_sales_channel_internet = mo.ui.checkbox(label="Internet", value=True)
+    input_sales_channel = mo.vstack(
+        [
+            mo.md("Sales channels: "),
+            mo.ui.checkbox(label="Internet", value=True),
+            mo.ui.checkbox(label="Resellers", value=True),
+        ],
+        justify="start",
+        align="start",
+    )
 
-    input_sales_channel_reseller = mo.ui.checkbox(label="Resellers", value=True)
+    input_product_category_bikes = mo.ui.checkbox(label="Bikes", value=True)
+    input_product_category_components = mo.ui.checkbox(
+        label="Components", value=True
+    )
+    input_product_category_clothings = mo.ui.checkbox(
+        label="Clothings", value=True
+    )
+    input_product_category_accesories = mo.ui.checkbox(
+        label="Accesories", value=True
+    )
+
+    input_product_category = mo.vstack(
+        [
+            mo.md("Product categories: "),
+            input_product_category_bikes,
+            input_product_category_components,
+            input_product_category_clothings,
+            input_product_category_accesories,
+        ],
+        justify="start",
+        align="start",
+    )
     return (
         input_fiscal_year,
-        input_sales_channel_internet,
-        input_sales_channel_reseller,
+        input_product_category,
+        input_product_category_accesories,
+        input_product_category_bikes,
+        input_product_category_clothings,
+        input_product_category_components,
+        input_sales_channel,
     )
 
 
 @app.cell
-def _(
-    input_fiscal_year,
-    input_sales_channel_internet,
-    input_sales_channel_reseller,
-    mo,
-):
+def _(input_product_category):
+    input_product_category
+    return
+
+
+@app.cell
+def _(input_product_category_bikes):
+    input_product_category_bikes.value
+    return
+
+
+@app.cell
+def _(input_fiscal_year, input_product_category, input_sales_channel, mo):
     mo.vstack(
         [
             input_fiscal_year,
-            mo.md("Sales channels: "),
-            mo.hstack(
-                [input_sales_channel_internet, input_sales_channel_reseller],
-                justify="start",
-            ),
+            input_sales_channel,
+            input_product_category,
         ]
     )
     return
