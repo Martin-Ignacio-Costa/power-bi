@@ -61,25 +61,43 @@ def language_variations(input_language):
     match input_language.value:
         # English labels
         case "0":
+            input_fiscal_year_label = "Fiscal Year: "
+            input_sales_channel_title = "Sales channels: "
             input_channel_internet_label = "Internet"
             input_channel_resellers_label = "Resellers"
             product_category_name = "EnglishProductCategoryName"
             product_subcategory_name = "EnglishProductSubcategoryName"
             product_name = "EnglishProductName"
+            input_product_category_label = "Product categories: "
+            input_product_subcategory_label = "Product subcategories: "
+            input_product_label = "Products: "
+            sales_total_title = "Sales $"
 
         # Spanish labels
         case "1":
+            input_fiscal_year_label = "Año Fiscal: "
+            input_sales_channel_title = "Canales de venta: "
             input_channel_internet_label = "Internet"
             input_channel_resellers_label = "Revendedores"
             product_category_name = "SpanishProductCategoryName"
             product_subcategory_name = "SpanishProductSubcategoryName"
             product_name = "SpanishProductName"
+            input_product_category_label = "Categorías de productos: "
+            input_product_subcategory_label = "Subcategorías de productos: "
+            input_product_label = "Productos: "
+            sales_total_title = "Ventas US$"
     return (
         input_channel_internet_label,
         input_channel_resellers_label,
+        input_fiscal_year_label,
+        input_product_category_label,
+        input_product_label,
+        input_product_subcategory_label,
+        input_sales_channel_title,
         product_category_name,
         product_name,
         product_subcategory_name,
+        sales_total_title,
     )
 
 
@@ -218,6 +236,10 @@ def filter_sources(
 def inputs(
     input_channel_internet,
     input_channel_resellers,
+    input_fiscal_year_label,
+    input_product_category_label,
+    input_product_subcategory_label,
+    input_sales_channel_title,
     list_category,
     list_fiscalyear,
     list_subcategory,
@@ -228,12 +250,12 @@ def inputs(
     input_fiscal_year = mo.ui.dropdown(
         options=list_fiscalyear,
         value="FY2018",
-        label="Fiscal Year: ",
+        label=input_fiscal_year_label,
     )
 
     input_sales_channel = mo.vstack(
         [
-            mo.md("Sales channels: "),
+            mo.md(input_sales_channel_title),
             input_channel_internet,
             input_channel_resellers,
         ],
@@ -244,13 +266,13 @@ def inputs(
     input_product_category = mo.ui.multiselect(
         options=list_category,
         value=list_category,
-        label="Product categories: ",
+        label=input_product_category_label,
     )
 
     input_product_subcategory = mo.ui.multiselect(
         options=list_subcategory,
         value=list_subcategory,
-        label="Product subcategories: ",
+        label=input_product_subcategory_label,
     )
     return (
         input_fiscal_year,
@@ -381,8 +403,8 @@ def _(sales_channel_all):
 
 
 @app.cell
-def _(mo, sales_channel_all):
-    mo.callout(f"Sales ${sales_channel_all}")
+def _(mo, sales_channel_all, sales_total_title):
+    mo.callout(f"{sales_total_title} {sales_channel_all}")
     return
 
 
