@@ -3,7 +3,9 @@ import marimo
 __generated_with = "0.12.10"
 app = marimo.App(
     width="medium",
+    app_title="Adventure Works Sales",
     layout_file="layouts/Adventure Works.grid.json",
+    sql_output="native",
 )
 
 
