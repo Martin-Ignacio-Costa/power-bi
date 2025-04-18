@@ -63,12 +63,24 @@ def language_variations(input_language):
         case "0":
             input_channel_internet_label = "Internet"
             input_channel_resellers_label = "Resellers"
+            product_category_name = "EnglishProductCategoryName"
+            product_subcategory_name = "EnglishProductSubcategoryName"
+            product_name = "EnglishProductName"
 
         # Spanish labels
         case "1":
             input_channel_internet_label = "Internet"
             input_channel_resellers_label = "Revendedores"
-    return input_channel_internet_label, input_channel_resellers_label
+            product_category_name = "SpanishProductCategoryName"
+            product_subcategory_name = "SpanishProductSubcategoryName"
+            product_name = "SpanishProductName"
+    return (
+        input_channel_internet_label,
+        input_channel_resellers_label,
+        product_category_name,
+        product_name,
+        product_subcategory_name,
+    )
 
 
 @app.cell
@@ -129,6 +141,9 @@ def filter_sources(
     input_channel_internet_label,
     input_channel_resellers_label,
     mo,
+    product_category_name,
+    product_name,
+    product_subcategory_name,
     sqlcon,
     table_product,
     table_productcategory,
@@ -142,32 +157,36 @@ def filter_sources(
         "FY2020": "2020",
     }
 
-    input_channel_internet = mo.ui.checkbox(label=input_channel_internet_label, value=True)
-    input_channel_resellers = mo.ui.checkbox(label=input_channel_resellers_label, value=True)
+    input_channel_internet = mo.ui.checkbox(
+        label=input_channel_internet_label, value=True
+    )
+    input_channel_resellers = mo.ui.checkbox(
+        label=input_channel_resellers_label, value=True
+    )
 
     # Generate a list of product categories in the DB to use as filtering criteria
     list_category = sqlcon.sql(f"""
-    SELECT DISTINCT EnglishProductCategoryName, ProductCategoryKey
+    SELECT DISTINCT {product_category_name}, ProductCategoryKey
     FROM {table_productcategory}
     ORDER BY ProductCategoryKey
     """).execute()
-    list_category = list_category["EnglishProductCategoryName"].to_list()
+    list_category = list_category[f"{product_category_name}"].to_list()
 
     # Generate a list of product subcategories in the DB to use as filtering criteria
     list_subcategory = sqlcon.sql(f"""
-    SELECT DISTINCT EnglishProductSubcategoryName, ProductSubcategoryKey
+    SELECT DISTINCT {product_subcategory_name}, ProductSubcategoryKey
     FROM {table_productsubcategory}
     ORDER BY ProductSubcategoryKey
     """).execute()
-    list_subcategory = list_subcategory["EnglishProductSubcategoryName"].to_list()
+    list_subcategory = list_subcategory[f"{product_subcategory_name}"].to_list()
 
     # Generate a list of products in the DB to use as filtering criteria
     list_product = sqlcon.sql(f"""
-    SELECT DISTINCT EnglishProductName, ProductKey
+    SELECT DISTINCT {product_name}, ProductKey
     FROM {table_product}
     ORDER BY ProductKey
     """).execute()
-    list_product = list_product["EnglishProductName"].to_list()
+    list_product = list_product[f"{product_name}"].to_list()
 
     # Dynamic variable generation methods
     # input_category = {}
