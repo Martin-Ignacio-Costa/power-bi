@@ -160,6 +160,7 @@ def quick_queries(
 
 @app.cell
 def relationships(
+    con,
     product_category_name,
     product_name,
     product_subcategory_name,
@@ -186,7 +187,17 @@ def relationships(
     ORDER BY {table_product_category}.{product_category_name},
     {table_product_subcategory}.{product_subcategory_name},
     {table_product}.{product_name}
-    """)
+    """).execute()
+
+    if "relation_category_subcategory_product" in con.list_tables():
+        con.drop_table("relation_category_subcategory_product")
+    con.create_table(
+        "relation_category_subcategory_product",
+        relation_category_subcategory_product,
+    )
+    relation_category_subcategory_product = con.table(
+        "relation_category_subcategory_product"
+    )
     return (relation_category_subcategory_product,)
 
 
@@ -333,32 +344,6 @@ def inputs(
 
 
 @app.cell
-def _():
-    # if input_product_category_bikes.value == True:
-    #     input_product_subcategory_mountainbikes = mo.ui.checkbox(
-    #         label="Mountain Bikes", value=True
-    #     )
-    #     input_product_subcategory_roadbikes = mo.ui.checkbox(
-    #         label="Road Bikes", value=True
-    #     )
-    #     input_product_subcategory_touringbikes = mo.ui.checkbox(
-    #         label="Touring Bikes", value=True
-    #     )
-
-    # input_product_subcategory = mo.vstack(
-    #     [
-    #         mo.md("Product subcategories: "),
-    #         input_product_subcategory_mountainbikes,
-    #         input_product_subcategory_roadbikes,
-    #         input_product_subcategory_touringbikes,
-    #     ],
-    #     justify="start",
-    #     align="start",
-    # )
-    return
-
-
-@app.cell
 def _(input_fiscal_year, input_product_category, input_sales_channel, mo):
     mo.vstack(
         [
@@ -371,32 +356,39 @@ def _(input_fiscal_year, input_product_category, input_sales_channel, mo):
 
 
 @app.cell
-def _(input_product_category):
-    input_product_category.value
-    return
-
-
-@app.cell
 def _(input_product_subcategory):
     input_product_subcategory
     return
 
 
 @app.cell
-def _(input_product_category, relation_category_subcategory_product):
-    product_filter_dependency = relation_category_subcategory_product.execute()
+def _(
+    input_product_category,
+    mo,
+    product_category_name,
+    relation_category_subcategory_product,
+):
+    product_filter_dependency = relation_category_subcategory_product
+
+    # product_filter_dependency = sqlcon.sql(f"""
+    # SELECT *
+    # FROM {product_filter_dependency}
+    # WHERE {product_category_name} IN ({input_product_category.value});
+    # """)
+
     product_filter_dependency = product_filter_dependency.filter(
-        product_filter_dependency["EnglishProductCategoryName"].isin(
+        product_filter_dependency[f"{product_category_name}"].isin(
             input_product_category.value
         )
     )
-    product_filter_dependency
 
-      # cuiles_input_estibadores_rw = tabla_supa_estibadores_rw.filter(
-      #       tabla_supa_estibadores_rw["Afiliado_Nombre"].isin(
-      #           input_estibadores_rw.value
-      #       )
-      #   )
+    mo.ui.table(product_filter_dependency)
+
+    # cuiles_input_estibadores_rw = tabla_supa_estibadores_rw.filter(
+    #       tabla_supa_estibadores_rw["Afiliado_Nombre"].isin(
+    #           input_estibadores_rw.value
+    #       )
+    #   )
     return (product_filter_dependency,)
 
 
