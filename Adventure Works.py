@@ -20,7 +20,7 @@ def imports():
 
 
 @app.cell
-def sql_settings(ibis, os):
+def settings(ibis, mo, os):
     # Settings for database connections
 
     con = ibis.duckdb.connect()
@@ -35,7 +35,40 @@ def sql_settings(ibis, os):
         driver="SQL Server",
         port=os.environ["SQLSERVER_PORT"],
     )
-    return con, sqlcon
+
+    # Language settings
+    input_language = mo.ui.dropdown(
+        options={
+            "English / Inglés": "0",
+            "Spanish / Español": "1",
+        },
+        value="English / Inglés",
+        label="Language / Lenguaje: ",
+    )
+    return con, input_language, sqlcon
+
+
+@app.cell
+def _(input_language):
+    input_language
+    return
+
+
+@app.cell
+def language_variations(input_language):
+    # Label variations for different languages
+
+    match input_language.value:
+        # English labels
+        case "0":
+            input_channel_internet_label = "Internet"
+            input_channel_resellers_label = "Resellers"
+
+        # Spanish labels
+        case "1":
+            input_channel_internet_label = "Internet"
+            input_channel_resellers_label = "Revendedores"
+    return input_channel_internet_label, input_channel_resellers_label
 
 
 @app.cell
@@ -93,6 +126,8 @@ def quick_queries(
 
 @app.cell
 def filter_sources(
+    input_channel_internet_label,
+    input_channel_resellers_label,
     mo,
     sqlcon,
     table_product,
@@ -107,9 +142,10 @@ def filter_sources(
         "FY2020": "2020",
     }
 
-    input_channel_internet = mo.ui.checkbox(label="Internet", value=True)
-    input_channel_resellers = mo.ui.checkbox(label="Resellers", value=True)
+    input_channel_internet = mo.ui.checkbox(label=input_channel_internet_label, value=True)
+    input_channel_resellers = mo.ui.checkbox(label=input_channel_resellers_label, value=True)
 
+    # Generate a list of product categories in the DB to use as filtering criteria
     list_category = sqlcon.sql(f"""
     SELECT DISTINCT EnglishProductCategoryName, ProductCategoryKey
     FROM {table_productcategory}
@@ -117,12 +153,21 @@ def filter_sources(
     """).execute()
     list_category = list_category["EnglishProductCategoryName"].to_list()
 
+    # Generate a list of product subcategories in the DB to use as filtering criteria
     list_subcategory = sqlcon.sql(f"""
     SELECT DISTINCT EnglishProductSubcategoryName, ProductSubcategoryKey
     FROM {table_productsubcategory}
     ORDER BY ProductSubcategoryKey
     """).execute()
     list_subcategory = list_subcategory["EnglishProductSubcategoryName"].to_list()
+
+    # Generate a list of products in the DB to use as filtering criteria
+    list_product = sqlcon.sql(f"""
+    SELECT DISTINCT EnglishProductName, ProductKey
+    FROM {table_product}
+    ORDER BY ProductKey
+    """).execute()
+    list_product = list_product["EnglishProductName"].to_list()
 
     # Dynamic variable generation methods
     # input_category = {}
@@ -140,14 +185,6 @@ def filter_sources(
     #         label=f"{category_capital}",
     #         value=True,
     #     )
-
-    list_product = sqlcon.sql(f"""
-    SELECT DISTINCT EnglishProductName, ProductKey
-    FROM {table_product}
-    ORDER BY ProductKey
-    """).execute()
-
-    # subcategory_list = subcategory_list["EnglishProductSubcategoryName"].to_list()
     return (
         input_channel_internet,
         input_channel_resellers,
