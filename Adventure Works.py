@@ -109,20 +109,20 @@ def db_tables():
 
     # Dimension tables
     table_date = "DimDate"
-    table_productcategory = "DimProductCategory"
-    table_productsubcategory = "DimProductSubcategory"
+    table_product_category = "DimProductCategory"
+    table_product_subcategory = "DimProductSubcategory"
     table_product = "DimProduct"
 
     # Fact tables
-    table_resellersales = "FactResellerSales"
-    table_internetsales = "FactInternetSales"
+    table_sales_reseller = "FactResellerSales"
+    table_sales_internet = "FactInternetSales"
     return (
         table_date,
-        table_internetsales,
         table_product,
-        table_productcategory,
-        table_productsubcategory,
-        table_resellersales,
+        table_product_category,
+        table_product_subcategory,
+        table_sales_internet,
+        table_sales_reseller,
     )
 
 
@@ -130,30 +130,64 @@ def db_tables():
 def quick_queries(
     sqlcon,
     table_date,
-    table_internetsales,
     table_product,
-    table_productcategory,
-    table_productsubcategory,
-    table_resellersales,
+    table_product_category,
+    table_product_subcategory,
+    table_sales_internet,
+    table_sales_reseller,
 ):
     # Quick queries for data exploration
 
     qq_table_date = sqlcon.sql(f"SELECT * FROM {table_date}")
-    qq_table_productcategory = sqlcon.sql(f"SELECT * FROM {table_productcategory}")
-    qq_table_productsubcategory = sqlcon.sql(
-        f"SELECT * FROM {table_productsubcategory}"
+    qq_table_product_category = sqlcon.sql(
+        f"SELECT * FROM {table_product_category}"
+    )
+    qq_table_product_subcategory = sqlcon.sql(
+        f"SELECT * FROM {table_product_subcategory}"
     )
     qq_table_product = sqlcon.sql(f"SELECT * FROM {table_product}")
-    qq_table_resellersales = sqlcon.sql(f"SELECT * FROM {table_resellersales}")
-    qq_table_internetsales = sqlcon.sql(f"SELECT * FROM {table_internetsales}")
+    qq_table_sales_reseller = sqlcon.sql(f"SELECT * FROM {table_sales_reseller}")
+    qq_table_sales_internet = sqlcon.sql(f"SELECT * FROM {table_sales_internet}")
     return (
         qq_table_date,
-        qq_table_internetsales,
         qq_table_product,
-        qq_table_productcategory,
-        qq_table_productsubcategory,
-        qq_table_resellersales,
+        qq_table_product_category,
+        qq_table_product_subcategory,
+        qq_table_sales_internet,
+        qq_table_sales_reseller,
     )
+
+
+@app.cell
+def relationships(
+    product_category_name,
+    product_name,
+    product_subcategory_name,
+    sqlcon,
+    table_product,
+    table_product_category,
+    table_product_subcategory,
+):
+    # Table relationships for use in inputs, filtering and analysis
+
+    relation_category_subcategory_product = sqlcon.sql(f"""
+    SELECT
+    {table_product_category}.ProductCategoryKey,
+    {table_product_category}.{product_category_name},
+    {table_product_subcategory}.ProductSubcategoryKey,
+    {table_product_subcategory}.{product_subcategory_name},
+    {table_product}.ProductKey,
+    {table_product}.{product_name}
+    FROM {table_product_category}
+    JOIN {table_product_subcategory} 
+        ON {table_product_category}.ProductCategoryKey = {table_product_subcategory}.ProductCategoryKey
+    JOIN {table_product}
+        ON {table_product_subcategory}.ProductSubcategoryKey = {table_product}.ProductSubcategoryKey
+    ORDER BY {table_product_category}.{product_category_name},
+    {table_product_subcategory}.{product_subcategory_name},
+    {table_product}.{product_name}
+    """)
+    return (relation_category_subcategory_product,)
 
 
 @app.cell
@@ -166,8 +200,8 @@ def filter_sources(
     product_subcategory_name,
     sqlcon,
     table_product,
-    table_productcategory,
-    table_productsubcategory,
+    table_product_category,
+    table_product_subcategory,
 ):
     # Data sources for the different filtering criteria
 
@@ -187,18 +221,18 @@ def filter_sources(
     # Generate a list of product categories in the DB to use as filtering criteria
     list_category = sqlcon.sql(f"""
     SELECT DISTINCT {product_category_name}, ProductCategoryKey
-    FROM {table_productcategory}
+    FROM {table_product_category}
     ORDER BY ProductCategoryKey
     """).execute()
-    list_category = list_category[f"{product_category_name}"].to_list()
+    # list_category = list_category[f"{product_category_name}"].to_list()
 
     # Generate a list of product subcategories in the DB to use as filtering criteria
     list_subcategory = sqlcon.sql(f"""
     SELECT DISTINCT {product_subcategory_name}, ProductSubcategoryKey
-    FROM {table_productsubcategory}
+    FROM {table_product_subcategory}
     ORDER BY ProductSubcategoryKey
     """).execute()
-    list_subcategory = list_subcategory[f"{product_subcategory_name}"].to_list()
+    # list_subcategory = list_subcategory[f"{product_subcategory_name}"].to_list()
 
     # Generate a list of products in the DB to use as filtering criteria
     list_product = sqlcon.sql(f"""
@@ -206,7 +240,7 @@ def filter_sources(
     FROM {table_product}
     ORDER BY ProductKey
     """).execute()
-    list_product = list_product[f"{product_name}"].to_list()
+    # list_product = list_product[f"{product_name}"].to_list()
 
     # Dynamic variable generation methods
     # input_category = {}
@@ -246,6 +280,8 @@ def inputs(
     list_fiscalyear,
     list_subcategory,
     mo,
+    product_category_name,
+    product_subcategory_name,
 ):
     # User inputs for data visualization and analysis
 
@@ -265,15 +301,27 @@ def inputs(
         align="start",
     )
 
-    input_product_category = mo.ui.multiselect(
-        options=list_category,
-        value=list_category,
+    # input_product_category = mo.ui.multiselect(
+    #     options=list_category,
+    #     value=list_category,
+    #     label=input_product_category_label,
+    # )
+
+    # input_product_subcategory = mo.ui.multiselect(
+    #     options=list_subcategory,
+    #     value=list_subcategory,
+    #     label=input_product_subcategory_label,
+    # )
+
+    input_product_category = mo.ui.multiselect.from_series(
+        list_category[f"{product_category_name}"],
+        value=list_category[f"{product_category_name}"],
         label=input_product_category_label,
     )
 
-    input_product_subcategory = mo.ui.multiselect(
-        options=list_subcategory,
-        value=list_subcategory,
+    input_product_subcategory = mo.ui.multiselect.from_series(
+        list_subcategory[f"{product_subcategory_name}"],
+        value=list_subcategory[f"{product_subcategory_name}"],
         label=input_product_subcategory_label,
     )
     return (
@@ -311,12 +359,6 @@ def _():
 
 
 @app.cell
-def _(input_product_subcategory):
-    input_product_subcategory
-    return
-
-
-@app.cell
 def _(input_fiscal_year, input_product_category, input_sales_channel, mo):
     mo.vstack(
         [
@@ -329,13 +371,43 @@ def _(input_fiscal_year, input_product_category, input_sales_channel, mo):
 
 
 @app.cell
+def _(input_product_category):
+    input_product_category.value
+    return
+
+
+@app.cell
+def _(input_product_subcategory):
+    input_product_subcategory
+    return
+
+
+@app.cell
+def _(input_product_category, relation_category_subcategory_product):
+    product_filter_dependency = relation_category_subcategory_product.execute()
+    product_filter_dependency = product_filter_dependency.filter(
+        product_filter_dependency["EnglishProductCategoryName"].isin(
+            input_product_category.value
+        )
+    )
+    product_filter_dependency
+
+      # cuiles_input_estibadores_rw = tabla_supa_estibadores_rw.filter(
+      #       tabla_supa_estibadores_rw["Afiliado_Nombre"].isin(
+      #           input_estibadores_rw.value
+      #       )
+      #   )
+    return (product_filter_dependency,)
+
+
+@app.cell
 def _(
     con,
     input_fiscal_year,
     sqlcon,
     table_date,
-    table_internetsales,
-    table_resellersales,
+    table_sales_internet,
+    table_sales_reseller,
 ):
     # Channel sales
 
@@ -345,9 +417,9 @@ def _(
         "internet_sales",
         sqlcon.sql(f"""
         SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
-        FROM {table_internetsales}
+        FROM {table_sales_internet}
         JOIN {table_date}
-        ON {table_internetsales}.OrderDateKey = {table_date}.DateKey
+        ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
         WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
         """).execute(),
     )
@@ -360,9 +432,9 @@ def _(
         "reseller_sales",
         sqlcon.sql(f"""
         SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales
-        FROM {table_resellersales}
+        FROM {table_sales_reseller}
         JOIN {table_date}
-        ON {table_resellersales}.OrderDateKey = {table_date}.DateKey
+        ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
         WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
         """).execute(),
     )
@@ -378,7 +450,7 @@ def _(
 
     # Alternativa usando alias para las tablas
     # reseller_sales = sqlcon.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
-    # FROM {table_resellersales} AS i
+    # FROM {table_sales_reseller} AS i
     # JOIN {table_date} AS d
     # ON i.OrderDateKey = d.DateKey
     # WHERE d.FiscalYear = 2020
