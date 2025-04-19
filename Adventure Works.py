@@ -377,27 +377,48 @@ def _(
 def _(
     con,
     input_fiscal_year,
+    input_product,
+    product_key,
+    product_name,
     sqlcon,
     table_date,
+    table_product,
     table_sales_internet,
     table_sales_reseller,
 ):
+    product_keys = sqlcon.sql(f"""
+    SELECT {product_key}
+    FROM {table_product}
+    WHERE {product_name} IN ('{"', '".join(input_product.value)}')
+    """).execute()
+
+    product_keys = product_keys[product_key].tolist()
+    product_keys = ", ".join(map(str, product_keys))
     # Channel sales
 
-    if "internet_sales" in con.list_tables():
-        con.drop_table("internet_sales")
-    con.create_table(
-        "internet_sales",
-        sqlcon.sql(f"""
-        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
-        FROM {table_sales_internet}
-        JOIN {table_date}
-        ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-        """).execute(),
-    )
+    # if "internet_sales" in con.list_tables():
+    #     con.drop_table("internet_sales")
+    # con.create_table(
+    #     "internet_sales",
+    #     sqlcon.sql(f"""
+    #     SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
+    #     FROM {table_sales_internet}
+    #     JOIN {table_date}
+    #     ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
+    #     WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+    #     """).execute(),
+    # )
 
-    sales_channel_internet = con.table("internet_sales").execute().iat[0, 0]
+    sales_channel_internet = sqlcon.sql(f"""
+    SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
+    FROM {table_sales_internet}
+    JOIN {table_date}
+    ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
+    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+    AND {table_sales_internet}.{product_key} IN ('{product_keys}')
+    """).execute().iat[0, 0]
+
+    # sales_channel_internet = con.table("internet_sales").execute().iat[0, 0]
 
     if ("reseller_sales") in con.list_tables():
         con.drop_table("reseller_sales")
@@ -412,15 +433,21 @@ def _(
         """).execute(),
     )
 
-    sales_channel_reseller = con.table("reseller_sales").execute().iat[0, 0]
+    # sales_channel_reseller = con.table("reseller_sales").execute().iat[0, 0]
 
-    sales_channel_all = sales_channel_internet + sales_channel_reseller
+    # sales_channel_all = sales_channel_internet + sales_channel_reseller
 
 
-    # Format results with thousands and decimal separators
-    sales_channel_internet = locale.format_string("%.2f", sales_channel_internet, grouping=True)
-    sales_channel_reseller = locale.format_string("%.2f", sales_channel_reseller, grouping=True)
-    sales_channel_all = locale.format_string("%.2f", sales_channel_all, grouping=True)
+    # # Format results with thousands and decimal separators
+    # sales_channel_internet = locale.format_string(
+    #     "%.2f", sales_channel_internet, grouping=True
+    # )
+    # sales_channel_reseller = locale.format_string(
+    #     "%.2f", sales_channel_reseller, grouping=True
+    # )
+    # sales_channel_all = locale.format_string(
+    #     "%.2f", sales_channel_all, grouping=True
+    # )
 
     # Alternativa usando alias para las tablas
     # reseller_sales = sqlcon.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
@@ -429,7 +456,7 @@ def _(
     # ON i.OrderDateKey = d.DateKey
     # WHERE d.FiscalYear = 2020
     # """).execute()
-    return sales_channel_all, sales_channel_internet, sales_channel_reseller
+    return (sales_channel_internet,)
 
 
 @app.cell
