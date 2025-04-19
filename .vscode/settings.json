@@ -1,0 +1,21 @@
+{
+    "sqltools.connections": [
+        {
+            "connectionTimeout": 15,
+            "mssqlOptions": {
+                "appName": "SQLTools",
+                "useUTC": true,
+                "encrypt": true,
+                "trustServerCertificate": false
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 1433,
+            "askForPassword": true,
+            "driver": "MSSQL",
+            "name": "SQL Server",
+            "database": "AdventureWorksDW2020",
+            "username": "mcosta"
+        }
+    ]
+}

@@ -52,12 +52,6 @@ def settings():
 
 
 @app.cell
-def _(input_language):
-    input_language
-    return
-
-
-@app.cell
 def language_variations(input_language):
     # Label variations for different languages
 
@@ -324,6 +318,7 @@ def _(
     input_channel_internet,
     input_channel_resellers,
     input_fiscal_year,
+    input_language,
     input_product,
     input_product_category,
     input_product_subcategory,
@@ -332,6 +327,7 @@ def _(
 ):
     mo.vstack(
         [
+            input_language,
             input_fiscal_year,
             mo.md(input_sales_channel_title),
             input_channel_internet,
@@ -362,7 +358,9 @@ def _(
     table_sales_internet,
     table_sales_reseller,
 ):
-    selected_products = "', '".join(input_product.value)
+    selected_products = "', '".join(
+        product.replace("'", "''") for product in input_product.value)
+
     # Channel sales
 
     if input_channel_internet.value == True:
@@ -377,13 +375,15 @@ def _(
             SELECT {product_key}
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
-            AND {product_subcategory_key} IS NOT NULL
+            --AND {product_subcategory_key} IS NOT NULL
         )
         """)
             .execute()
             .iat[0, 0]
         )
     else:
+        sales_channel_internet = 0
+    if sales_channel_internet is None:
         sales_channel_internet = 0
 
     if input_channel_resellers.value == True:
@@ -398,13 +398,15 @@ def _(
             SELECT {product_key}
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
-            AND {product_subcategory_key} IS NOT NULL
+            --AND {product_subcategory_key} IS NOT NULL
         )
         """)
             .execute()
             .iat[0, 0]
         )
     else:
+        sales_channel_resellers = 0
+    if sales_channel_resellers is None:
         sales_channel_resellers = 0
 
     sales_channel_all = sales_channel_internet + sales_channel_resellers
