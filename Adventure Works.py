@@ -219,20 +219,6 @@ def filter_sources(
         label=input_channel_resellers_label, value=True
     )
 
-    # # Generate a list of product subcategories in the DB to use as filtering criteria
-    # list_subcategory = sqlcon.sql(f"""
-    # SELECT DISTINCT {product_subcategory_name}, ProductSubcategoryKey
-    # FROM {table_product_subcategory}
-    # ORDER BY ProductSubcategoryKey
-    # """).execute()
-
-    # # Generate a list of products in the DB to use as filtering criteria
-    # list_product = sqlcon.sql(f"""
-    # SELECT DISTINCT {product_name}, ProductKey
-    # FROM {table_product}
-    # ORDER BY ProductKey
-    # """).execute()
-
     # # Generate a list of product categories in the DB to use as filtering criteria
     # list_category = con.sql(f"""
     # SELECT DISTINCT {product_category_name}, ProductCategoryKey
@@ -343,26 +329,42 @@ def _(
 
 
 @app.cell
-def _():
-    # # Generate a list of products in the DB to use as filtering criteria
-    # selected_subcategories = "', '".join(input_product_subcategory.value)
-    # list_product = con.sql(f"""
-    # SELECT DISTINCT {product_name}, ProductKey
-    # FROM category_subcategory_product
-    # WHERE {product_name} IN ('{selected_subcategories}');
-    # """).execute()
+def _(
+    input_product_label,
+    input_product_subcategory,
+    mo,
+    product_key,
+    product_name,
+    product_subcategory_key,
+    sqlcon,
+    table_product,
+    table_product_subcategory,
+):
+    # Generate a list of products in the DB to use as filtering criteria
+    selected_subcategories = "', '".join(input_product_subcategory.value)
+    list_product = sqlcon.sql(f"""
+    SELECT DISTINCT {product_name}, {product_key}
+    FROM {table_product}
+    WHERE {product_subcategory_key} IN (
+        SELECT {product_subcategory_key}
+        FROM {table_product_subcategory}
+        WHERE {product_name} IN ('{selected_subcategories}')
+    )
+    ORDER BY {product_key}
+    """).execute()
 
-    # input_product = mo.ui.multiselect.from_series(
-    #     list_product[f"{product_name}"],
-    #     value=list_product[f"{product_name}"],
-    #     label=input_product_label,
-    # )
-    return
+    input_product = mo.ui.multiselect.from_series(
+        list_product[f"{product_name}"],
+        value=list_product[f"{product_name}"],
+        label=input_product_label,
+    )
+    return input_product, list_product, selected_subcategories
 
 
 @app.cell
 def _(
     input_fiscal_year,
+    input_product,
     input_product_category,
     input_product_subcategory,
     input_sales_channel,
@@ -374,7 +376,7 @@ def _(
             input_sales_channel,
             input_product_category,
             input_product_subcategory,
-            # input_product,
+            input_product,
         ]
     )
     return
