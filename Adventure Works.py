@@ -171,7 +171,7 @@ def relationships(
 ):
     # Table relationships for use in inputs, filtering and analysis
 
-    relation_category_subcategory_product = sqlcon.sql(f"""
+    category_subcategory_product = sqlcon.sql(f"""
     SELECT
     {table_product_category}.ProductCategoryKey,
     {table_product_category}.{product_category_name},
@@ -189,30 +189,25 @@ def relationships(
     {table_product}.{product_name}
     """).execute()
 
-    if "relation_category_subcategory_product" in con.list_tables():
-        con.drop_table("relation_category_subcategory_product")
+    if "category_subcategory_product" in con.list_tables():
+        con.drop_table("category_subcategory_product")
     con.create_table(
-        "relation_category_subcategory_product",
-        relation_category_subcategory_product,
+        "category_subcategory_product",
+        category_subcategory_product,
     )
-    relation_category_subcategory_product = con.table(
-        "relation_category_subcategory_product"
-    )
-    return (relation_category_subcategory_product,)
+    table_category_subcategory_product = con.table("category_subcategory_product")
+    return category_subcategory_product, table_category_subcategory_product
 
 
 @app.cell
 def filter_sources(
+    con,
     input_channel_internet_label,
     input_channel_resellers_label,
     mo,
     product_category_name,
     product_name,
     product_subcategory_name,
-    sqlcon,
-    table_product,
-    table_product_category,
-    table_product_subcategory,
 ):
     # Data sources for the different filtering criteria
 
@@ -229,46 +224,47 @@ def filter_sources(
         label=input_channel_resellers_label, value=True
     )
 
+    # # Generate a list of product categories in the DB to use as filtering criteria
+    # list_category = sqlcon.sql(f"""
+    # SELECT DISTINCT {product_category_name}, ProductCategoryKey
+    # FROM {table_product_category}
+    # ORDER BY ProductCategoryKey
+    # """).execute()
+
+    # # Generate a list of product subcategories in the DB to use as filtering criteria
+    # list_subcategory = sqlcon.sql(f"""
+    # SELECT DISTINCT {product_subcategory_name}, ProductSubcategoryKey
+    # FROM {table_product_subcategory}
+    # ORDER BY ProductSubcategoryKey
+    # """).execute()
+
+    # # Generate a list of products in the DB to use as filtering criteria
+    # list_product = sqlcon.sql(f"""
+    # SELECT DISTINCT {product_name}, ProductKey
+    # FROM {table_product}
+    # ORDER BY ProductKey
+    # """).execute()
+
     # Generate a list of product categories in the DB to use as filtering criteria
-    list_category = sqlcon.sql(f"""
+    list_category = con.sql(f"""
     SELECT DISTINCT {product_category_name}, ProductCategoryKey
-    FROM {table_product_category}
+    FROM category_subcategory_product
     ORDER BY ProductCategoryKey
     """).execute()
-    # list_category = list_category[f"{product_category_name}"].to_list()
 
     # Generate a list of product subcategories in the DB to use as filtering criteria
-    list_subcategory = sqlcon.sql(f"""
+    list_subcategory = con.sql(f"""
     SELECT DISTINCT {product_subcategory_name}, ProductSubcategoryKey
-    FROM {table_product_subcategory}
+    FROM category_subcategory_product
     ORDER BY ProductSubcategoryKey
     """).execute()
-    # list_subcategory = list_subcategory[f"{product_subcategory_name}"].to_list()
 
     # Generate a list of products in the DB to use as filtering criteria
-    list_product = sqlcon.sql(f"""
+    list_product = con.sql(f"""
     SELECT DISTINCT {product_name}, ProductKey
-    FROM {table_product}
+    FROM category_subcategory_product
     ORDER BY ProductKey
     """).execute()
-    # list_product = list_product[f"{product_name}"].to_list()
-
-    # Dynamic variable generation methods
-    # input_category = {}
-    # for category in list_category["EnglishProductCategoryName"]:
-    #     input_category[f"{category.lower()}"] = mo.ui.checkbox(
-    #         label=f"{category}",
-    #         value=True,
-    #     )
-
-    # list_category = list_category["EnglishProductCategoryName"].to_list()
-    # for category in list_category:
-    #     category = category.lower()
-    #     category_capital = category.capitalize()
-    #     globals()[f"input_category_{category}"] = mo.ui.checkbox(
-    #         label=f"{category_capital}",
-    #         value=True,
-    #     )
     return (
         input_channel_internet,
         input_channel_resellers,
@@ -312,18 +308,6 @@ def inputs(
         align="start",
     )
 
-    # input_product_category = mo.ui.multiselect(
-    #     options=list_category,
-    #     value=list_category,
-    #     label=input_product_category_label,
-    # )
-
-    # input_product_subcategory = mo.ui.multiselect(
-    #     options=list_subcategory,
-    #     value=list_subcategory,
-    #     label=input_product_subcategory_label,
-    # )
-
     input_product_category = mo.ui.multiselect.from_series(
         list_category[f"{product_category_name}"],
         value=list_category[f"{product_category_name}"],
@@ -366,9 +350,9 @@ def _(
     input_product_category,
     mo,
     product_category_name,
-    relation_category_subcategory_product,
+    table_category_subcategory_product,
 ):
-    product_filter_dependency = relation_category_subcategory_product
+    product_filter_dependency = table_category_subcategory_product
 
     # product_filter_dependency = sqlcon.sql(f"""
     # SELECT *
@@ -383,12 +367,6 @@ def _(
     )
 
     mo.ui.table(product_filter_dependency)
-
-    # cuiles_input_estibadores_rw = tabla_supa_estibadores_rw.filter(
-    #       tabla_supa_estibadores_rw["Afiliado_Nombre"].isin(
-    #           input_estibadores_rw.value
-    #       )
-    #   )
     return (product_filter_dependency,)
 
 
