@@ -41,11 +41,11 @@ def settings(ibis, mo, os):
     # Language settings
     input_language = mo.ui.dropdown(
         options={
-            "English / Inglés": "0",
-            "Spanish / Español": "1",
+            "English/Inglés": "0",
+            "Spanish/Español": "1",
         },
-        value="English / Inglés",
-        label="Language / Lenguaje: ",
+        value="English/Inglés",
+        label="<strong>Language/Lenguaje: </strong>",
     )
     return con, input_language, sqlcon
 
@@ -57,15 +57,17 @@ def _(input_language):
 
 
 @app.cell
-def language_variations(input_language):
+def language_variations(input_language, mo):
     # Label variations for different languages
 
     match input_language.value:
         # English labels
         case "0":
-            input_fiscal_year_label = "Fiscal Year: "
-            input_sales_channel_title = "Filter sales channels by: "
-            input_product_title = "Filter products by: "
+            input_fiscal_year_label = "<strong>Fiscal Year: </strong>"
+            input_sales_channel_title = (
+                "<strong>Filter sales channels by: </strong>"
+            )
+            input_product_title = mo.md("<strong>Filter products by: </strong>")
             input_channel_internet_label = "Internet"
             input_channel_resellers_label = "Resellers"
             product_category_name = "EnglishProductCategoryName"
@@ -78,9 +80,11 @@ def language_variations(input_language):
 
         # Spanish labels
         case "1":
-            input_fiscal_year_label = "Año Fiscal: "
-            input_sales_channel_title = "Filtrar canales de venta por: "
-            input_product_title = "Filtrar productos por: "
+            input_fiscal_year_label = "<strong>Año Fiscal: </strong>"
+            input_sales_channel_title = (
+                "<strong>Filtrar canales de venta por: </strong>"
+            )
+            input_product_title = mo.md("<strong>Filtrar productos por: </strong>")
             input_channel_internet_label = "Internet"
             input_channel_resellers_label = "Revendedores"
             product_category_name = "SpanishProductCategoryName"
