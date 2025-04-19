@@ -362,6 +362,8 @@ def _(
         product.replace("'", "''") for product in input_product.value)
 
     # Channel sales
+    sales_channel_internet = 0
+    sales_channel_resellers = 0
 
     if input_channel_internet.value == True:
         sales_channel_internet = (
@@ -381,8 +383,6 @@ def _(
             .execute()
             .iat[0, 0]
         )
-    else:
-        sales_channel_internet = 0
     if sales_channel_internet is None:
         sales_channel_internet = 0
 
@@ -404,8 +404,6 @@ def _(
             .execute()
             .iat[0, 0]
         )
-    else:
-        sales_channel_resellers = 0
     if sales_channel_resellers is None:
         sales_channel_resellers = 0
 
