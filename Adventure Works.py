@@ -70,8 +70,8 @@ def language_variations(input_language):
             product_category_name = "EnglishProductCategoryName"
             product_subcategory_name = "EnglishProductSubcategoryName"
             product_name = "EnglishProductName"
-            input_product_category_label = "Product categories: "
-            input_product_subcategory_label = "Product subcategories: "
+            input_product_category_label = "Categories: "
+            input_product_subcategory_label = "Subcategories: "
             input_product_label = "Products: "
             sales_total_title = "Sales $"
 
@@ -84,8 +84,8 @@ def language_variations(input_language):
             product_category_name = "SpanishProductCategoryName"
             product_subcategory_name = "SpanishProductSubcategoryName"
             product_name = "SpanishProductName"
-            input_product_category_label = "Categorías de productos: "
-            input_product_subcategory_label = "Subcategorías de productos: "
+            input_product_category_label = "Categorías: "
+            input_product_subcategory_label = "Subcategorías: "
             input_product_label = "Productos: "
             sales_total_title = "Ventas US$"
 
