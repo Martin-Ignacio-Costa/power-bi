@@ -48,7 +48,7 @@ def settings():
         value="English / Inglés",
         label="<strong>Language / Idioma: </strong>",
     )
-    return con, input_language, sqlcon
+    return input_language, sqlcon
 
 
 @app.cell
@@ -375,7 +375,6 @@ def _(
 
 @app.cell
 def _(
-    con,
     input_fiscal_year,
     input_product,
     product_key,
@@ -402,45 +401,32 @@ def _(
     )
     """).execute().iat[0, 0]
 
-    # sales_channel_internet = con.table("internet_sales").execute().iat[0, 0]
-
-    if ("reseller_sales") in con.list_tables():
-        con.drop_table("reseller_sales")
-    con.create_table(
-        "reseller_sales",
-        sqlcon.sql(f"""
-        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales
-        FROM {table_sales_reseller}
-        JOIN {table_date}
-        ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-        """).execute(),
+    sales_channel_reseller = sqlcon.sql(f"""
+    SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales
+    FROM {table_sales_reseller}
+    JOIN {table_date}
+    ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
+    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+    AND {table_sales_reseller}.{product_key} IN (
+        SELECT {product_key}
+        FROM {table_product}
+        WHERE {product_name} IN ('{selected_products}')
     )
+    """).execute().iat[0, 0]
 
-    # sales_channel_reseller = con.table("reseller_sales").execute().iat[0, 0]
+    sales_channel_all = sales_channel_internet + sales_channel_reseller
 
-    # sales_channel_all = sales_channel_internet + sales_channel_reseller
-
-
-    # # Format results with thousands and decimal separators
-    # sales_channel_internet = locale.format_string(
-    #     "%.2f", sales_channel_internet, grouping=True
-    # )
-    # sales_channel_reseller = locale.format_string(
-    #     "%.2f", sales_channel_reseller, grouping=True
-    # )
-    # sales_channel_all = locale.format_string(
-    #     "%.2f", sales_channel_all, grouping=True
-    # )
-
-    # Alternativa usando alias para las tablas
-    # reseller_sales = sqlcon.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
-    # FROM {table_sales_reseller} AS i
-    # JOIN {table_date} AS d
-    # ON i.OrderDateKey = d.DateKey
-    # WHERE d.FiscalYear = 2020
-    # """).execute()
-    return (sales_channel_internet,)
+    # Format results with thousands and decimal separators
+    sales_channel_internet = locale.format_string(
+        "%.2f", sales_channel_internet, grouping=True
+    )
+    sales_channel_reseller = locale.format_string(
+        "%.2f", sales_channel_reseller, grouping=True
+    )
+    sales_channel_all = locale.format_string(
+        "%.2f", sales_channel_all, grouping=True
+    )
+    return sales_channel_all, sales_channel_internet, sales_channel_reseller
 
 
 @app.cell
