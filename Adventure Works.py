@@ -375,6 +375,8 @@ def _(
 
 @app.cell
 def _(
+    input_channel_internet,
+    input_channel_resellers,
     input_fiscal_year,
     input_product,
     product_key,
@@ -388,45 +390,51 @@ def _(
     selected_products = "', '".join(input_product.value)
     # Channel sales
 
-    sales_channel_internet = sqlcon.sql(f"""
-    SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
-    FROM {table_sales_internet}
-    JOIN {table_date}
-    ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
-    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-    AND {table_sales_internet}.{product_key} IN (
-        SELECT {product_key}
-        FROM {table_product}
-        WHERE {product_name} IN ('{selected_products}')
-    )
-    """).execute().iat[0, 0]
+    if input_channel_internet.value == True:
+        sales_channel_internet = sqlcon.sql(f"""
+        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
+        FROM {table_sales_internet}
+        JOIN {table_date}
+        ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+        AND {table_sales_internet}.{product_key} IN (
+            SELECT {product_key}
+            FROM {table_product}
+            WHERE {product_name} IN ('{selected_products}')
+        )
+        """).execute().iat[0, 0]
+    else:
+        sales_channel_internet = 0
 
-    sales_channel_reseller = sqlcon.sql(f"""
-    SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales
-    FROM {table_sales_reseller}
-    JOIN {table_date}
-    ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
-    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-    AND {table_sales_reseller}.{product_key} IN (
-        SELECT {product_key}
-        FROM {table_product}
-        WHERE {product_name} IN ('{selected_products}')
-    )
-    """).execute().iat[0, 0]
+    if input_channel_resellers.value == True:
+        sales_channel_resellers = sqlcon.sql(f"""
+        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales
+        FROM {table_sales_reseller}
+        JOIN {table_date}
+        ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+        AND {table_sales_reseller}.{product_key} IN (
+            SELECT {product_key}
+            FROM {table_product}
+            WHERE {product_name} IN ('{selected_products}')
+        )
+        """).execute().iat[0, 0]
+    else:
+        sales_channel_resellers = 0
 
-    sales_channel_all = sales_channel_internet + sales_channel_reseller
+    sales_channel_all = sales_channel_internet + sales_channel_resellers
 
     # Format results with thousands and decimal separators
     sales_channel_internet = locale.format_string(
         "%.2f", sales_channel_internet, grouping=True
     )
-    sales_channel_reseller = locale.format_string(
-        "%.2f", sales_channel_reseller, grouping=True
+    sales_channel_resellers = locale.format_string(
+        "%.2f", sales_channel_resellers, grouping=True
     )
     sales_channel_all = locale.format_string(
         "%.2f", sales_channel_all, grouping=True
     )
-    return sales_channel_all, sales_channel_internet, sales_channel_reseller
+    return sales_channel_all, sales_channel_internet, sales_channel_resellers
 
 
 @app.cell
@@ -436,8 +444,8 @@ def _(sales_channel_internet):
 
 
 @app.cell
-def _(sales_channel_reseller):
-    sales_channel_reseller
+def _(sales_channel_resellers):
+    sales_channel_resellers
     return
 
 
