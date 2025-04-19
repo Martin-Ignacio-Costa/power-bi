@@ -310,18 +310,6 @@ def inputs(
 
 
 @app.cell
-def _(input_fiscal_year, input_product_category, input_sales_channel, mo):
-    mo.vstack(
-        [
-            input_fiscal_year,
-            input_sales_channel,
-            input_product_category,
-        ]
-    )
-    return
-
-
-@app.cell
 def _(
     con,
     input_product_category,
@@ -343,35 +331,51 @@ def _(
         value=list_subcategory[f"{product_subcategory_name}"],
         label=input_product_subcategory_label,
     )
-
-    # product_filter_dependency = product_filter_dependency.filter(
-    #     product_filter_dependency[f"{product_category_name}"].isin(
-    #         input_product_category.value
-    #     )
-    # )
-
-
     return input_product_subcategory, list_subcategory, selected_categories
 
 
 @app.cell
-def _(input_product_subcategory):
-    input_product_subcategory
+def _(con, input_product_label, input_product_subcategory, mo, product_name):
+    # Generate a list of products in the DB to use as filtering criteria
+    selected_subcategories = "', '".join(input_product_subcategory.value)
+    list_product = con.sql(f"""
+    SELECT DISTINCT {product_name}, ProductKey
+    FROM category_subcategory_product
+    WHERE {product_name} IN ('{selected_subcategories}');
+    """).execute()
+
+    input_product = mo.ui.multiselect.from_series(
+        list_product[f"{product_name}"],
+        value=list_product[f"{product_name}"],
+        label=input_product_label,
+    )
+    return input_product, list_product, selected_subcategories
+
+
+@app.cell
+def _(
+    input_fiscal_year,
+    input_product,
+    input_product_category,
+    input_product_subcategory,
+    input_sales_channel,
+    mo,
+):
+    mo.vstack(
+        [
+            input_fiscal_year,
+            input_sales_channel,
+            input_product_category,
+            input_product_subcategory,
+            input_product,
+        ]
+    )
     return
 
 
 @app.cell
-def _(con, product_name):
-
-
-
-    # Generate a list of products in the DB to use as filtering criteria
-    list_product = con.sql(f"""
-    SELECT DISTINCT {product_name}, ProductKey
-    FROM category_subcategory_product
-    ORDER BY ProductKey
-    """).execute()
-    return (list_product,)
+def _():
+    return
 
 
 @app.cell
