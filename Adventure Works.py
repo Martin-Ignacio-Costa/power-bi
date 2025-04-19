@@ -243,11 +243,8 @@ def _(input_channel_internet_label, input_channel_resellers_label):
 
 @app.cell
 def _(
-    input_channel_internet,
-    input_channel_resellers,
     input_fiscal_year_label,
     input_product_category_label,
-    input_sales_channel_title,
     list_fiscalyear,
     product_category_key,
     product_category_name,
@@ -258,16 +255,6 @@ def _(
         options=list_fiscalyear,
         value="FY2018",
         label=input_fiscal_year_label,
-    )
-
-    input_sales_channel = mo.vstack(
-        [
-            mo.md(input_sales_channel_title),
-            input_channel_internet,
-            input_channel_resellers,
-        ],
-        justify="start",
-        align="start",
     )
 
     # Generate a list of product categories in the DB to use as filtering criteria
@@ -282,7 +269,7 @@ def _(
         value=list_category[f"{product_category_name}"],
         label=input_product_category_label,
     )
-    return input_fiscal_year, input_product_category, input_sales_channel
+    return input_fiscal_year, input_product_category
 
 
 @app.cell
@@ -353,22 +340,29 @@ def _(
 
 @app.cell
 def _(
+    input_channel_internet,
+    input_channel_resellers,
     input_fiscal_year,
     input_product,
     input_product_category,
     input_product_subcategory,
     input_product_title,
-    input_sales_channel,
+    input_sales_channel_title,
 ):
     mo.vstack(
         [
             input_fiscal_year,
-            input_sales_channel,
+            # input_sales_channel,
+            mo.md(input_sales_channel_title),
+            input_channel_internet,
+            input_channel_resellers,
             input_product_title,
             input_product_category,
             input_product_subcategory,
             input_product,
-        ]
+        ],
+        align="start",
+        justify="start",
     )
     return
 
@@ -381,6 +375,7 @@ def _(
     input_product,
     product_key,
     product_name,
+    product_subcategory_key,
     sqlcon,
     table_date,
     table_product,
@@ -401,6 +396,7 @@ def _(
             SELECT {product_key}
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
+            AND {product_subcategory_key} IS NOT NULL
         )
         """).execute().iat[0, 0]
     else:
@@ -417,6 +413,7 @@ def _(
             SELECT {product_key}
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
+            AND {product_subcategory_key} IS NOT NULL
         )
         """).execute().iat[0, 0]
     else:
