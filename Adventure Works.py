@@ -88,6 +88,11 @@ def language_variations(input_language):
             input_product_subcategory_label = "Subcategorías de productos: "
             input_product_label = "Productos: "
             sales_total_title = "Ventas US$"
+
+    # Language-independent variables
+    product_category_key = "ProductCategoryKey"
+    product_subcategory_key = "ProductSubcategoryKey"
+    product_key = "ProductKey"
     return (
         input_channel_internet_label,
         input_channel_resellers_label,
@@ -96,8 +101,11 @@ def language_variations(input_language):
         input_product_label,
         input_product_subcategory_label,
         input_sales_channel_title,
+        product_category_key,
         product_category_name,
+        product_key,
         product_name,
+        product_subcategory_key,
         product_subcategory_name,
         sales_total_title,
     )
@@ -159,53 +167,42 @@ def quick_queries(
 
 
 @app.cell
-def relationships(
-    con,
-    product_category_name,
-    product_name,
-    product_subcategory_name,
-    sqlcon,
-    table_product,
-    table_product_category,
-    table_product_subcategory,
-):
+def relationships():
     # Table relationships for use in inputs, filtering and analysis
 
-    category_subcategory_product = sqlcon.sql(f"""
-    SELECT
-    {table_product_category}.ProductCategoryKey,
-    {table_product_category}.{product_category_name},
-    {table_product_subcategory}.ProductSubcategoryKey,
-    {table_product_subcategory}.{product_subcategory_name},
-    {table_product}.ProductKey,
-    {table_product}.{product_name}
-    FROM {table_product_category}
-    JOIN {table_product_subcategory} 
-        ON {table_product_category}.ProductCategoryKey = {table_product_subcategory}.ProductCategoryKey
-    JOIN {table_product}
-        ON {table_product_subcategory}.ProductSubcategoryKey = {table_product}.ProductSubcategoryKey
-    ORDER BY {table_product_category}.{product_category_name},
-    {table_product_subcategory}.{product_subcategory_name},
-    {table_product}.{product_name}
-    """).execute()
+    # category_subcategory_product = sqlcon.sql(f"""
+    # SELECT
+    # {table_product_category}.ProductCategoryKey,
+    # {table_product_category}.{product_category_name},
+    # {table_product_subcategory}.ProductSubcategoryKey,
+    # {table_product_subcategory}.{product_subcategory_name},
+    # {table_product}.ProductKey,
+    # {table_product}.{product_name}
+    # FROM {table_product_category}
+    # JOIN {table_product_subcategory} 
+    #     ON {table_product_category}.ProductCategoryKey = {table_product_subcategory}.ProductCategoryKey
+    # JOIN {table_product}
+    #     ON {table_product_subcategory}.ProductSubcategoryKey = {table_product}.ProductSubcategoryKey
+    # ORDER BY {table_product_category}.{product_category_name},
+    # {table_product_subcategory}.{product_subcategory_name},
+    # {table_product}.{product_name}
+    # """).execute()
 
-    if "category_subcategory_product" in con.list_tables():
-        con.drop_table("category_subcategory_product")
-    con.create_table(
-        "category_subcategory_product",
-        category_subcategory_product,
-    )
-    table_category_subcategory_product = con.table("category_subcategory_product")
-    return category_subcategory_product, table_category_subcategory_product
+    # if "category_subcategory_product" in con.list_tables():
+    #     con.drop_table("category_subcategory_product")
+    # con.create_table(
+    #     "category_subcategory_product",
+    #     category_subcategory_product,
+    # )
+    # table_category_subcategory_product = con.table("category_subcategory_product")
+    return
 
 
 @app.cell
 def filter_sources(
-    con,
     input_channel_internet_label,
     input_channel_resellers_label,
     mo,
-    product_category_name,
 ):
     # Data sources for the different filtering criteria
 
@@ -222,13 +219,6 @@ def filter_sources(
         label=input_channel_resellers_label, value=True
     )
 
-    # # Generate a list of product categories in the DB to use as filtering criteria
-    # list_category = sqlcon.sql(f"""
-    # SELECT DISTINCT {product_category_name}, ProductCategoryKey
-    # FROM {table_product_category}
-    # ORDER BY ProductCategoryKey
-    # """).execute()
-
     # # Generate a list of product subcategories in the DB to use as filtering criteria
     # list_subcategory = sqlcon.sql(f"""
     # SELECT DISTINCT {product_subcategory_name}, ProductSubcategoryKey
@@ -243,12 +233,12 @@ def filter_sources(
     # ORDER BY ProductKey
     # """).execute()
 
-    # Generate a list of product categories in the DB to use as filtering criteria
-    list_category = con.sql(f"""
-    SELECT DISTINCT {product_category_name}, ProductCategoryKey
-    FROM category_subcategory_product
-    ORDER BY ProductCategoryKey
-    """).execute()
+    # # Generate a list of product categories in the DB to use as filtering criteria
+    # list_category = con.sql(f"""
+    # SELECT DISTINCT {product_category_name}, ProductCategoryKey
+    # FROM category_subcategory_product
+    # ORDER BY ProductCategoryKey
+    # """).execute()
 
     # # Generate a list of product subcategories in the DB to use as filtering criteria
     # list_subcategory = con.sql(f"""
@@ -263,12 +253,7 @@ def filter_sources(
     # FROM category_subcategory_product
     # ORDER BY ProductKey
     # """).execute()
-    return (
-        input_channel_internet,
-        input_channel_resellers,
-        list_category,
-        list_fiscalyear,
-    )
+    return input_channel_internet, input_channel_resellers, list_fiscalyear
 
 
 @app.cell
@@ -278,10 +263,12 @@ def inputs(
     input_fiscal_year_label,
     input_product_category_label,
     input_sales_channel_title,
-    list_category,
     list_fiscalyear,
     mo,
+    product_category_key,
     product_category_name,
+    sqlcon,
+    table_product_category,
 ):
     # User inputs for data visualization and analysis
 
@@ -301,29 +288,50 @@ def inputs(
         align="start",
     )
 
+    # Generate a list of product categories in the DB to use as filtering criteria
+    list_category = sqlcon.sql(f"""
+    SELECT DISTINCT {product_category_name}, {product_category_key}
+    FROM {table_product_category}
+    ORDER BY ProductCategoryKey
+    """).execute()
+
     input_product_category = mo.ui.multiselect.from_series(
         list_category[f"{product_category_name}"],
         value=list_category[f"{product_category_name}"],
         label=input_product_category_label,
     )
-    return input_fiscal_year, input_product_category, input_sales_channel
+    return (
+        input_fiscal_year,
+        input_product_category,
+        input_sales_channel,
+        list_category,
+    )
 
 
 @app.cell
 def _(
-    con,
     input_product_category,
     input_product_subcategory_label,
     mo,
+    product_category_key,
     product_category_name,
+    product_subcategory_key,
     product_subcategory_name,
+    sqlcon,
+    table_product_category,
+    table_product_subcategory,
 ):
     # Generate a list of product subcategories in the DB to use as filtering criteria
     selected_categories = "', '".join(input_product_category.value)
-    list_subcategory = con.sql(f"""
-    SELECT DISTINCT {product_subcategory_name}, ProductSubcategoryKey
-    FROM category_subcategory_product
-    WHERE {product_category_name} IN ('{selected_categories}');
+    list_subcategory = sqlcon.sql(f"""
+    SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
+    FROM {table_product_subcategory}
+    WHERE {product_category_key} IN (
+        SELECT {product_category_key}
+        FROM {table_product_category}
+        WHERE {product_category_name} IN ('{selected_categories}')
+    )
+    ORDER BY {product_subcategory_key}
     """).execute()
 
     input_product_subcategory = mo.ui.multiselect.from_series(
@@ -335,27 +343,26 @@ def _(
 
 
 @app.cell
-def _(con, input_product_label, input_product_subcategory, mo, product_name):
-    # Generate a list of products in the DB to use as filtering criteria
-    selected_subcategories = "', '".join(input_product_subcategory.value)
-    list_product = con.sql(f"""
-    SELECT DISTINCT {product_name}, ProductKey
-    FROM category_subcategory_product
-    WHERE {product_name} IN ('{selected_subcategories}');
-    """).execute()
+def _():
+    # # Generate a list of products in the DB to use as filtering criteria
+    # selected_subcategories = "', '".join(input_product_subcategory.value)
+    # list_product = con.sql(f"""
+    # SELECT DISTINCT {product_name}, ProductKey
+    # FROM category_subcategory_product
+    # WHERE {product_name} IN ('{selected_subcategories}');
+    # """).execute()
 
-    input_product = mo.ui.multiselect.from_series(
-        list_product[f"{product_name}"],
-        value=list_product[f"{product_name}"],
-        label=input_product_label,
-    )
-    return input_product, list_product, selected_subcategories
+    # input_product = mo.ui.multiselect.from_series(
+    #     list_product[f"{product_name}"],
+    #     value=list_product[f"{product_name}"],
+    #     label=input_product_label,
+    # )
+    return
 
 
 @app.cell
 def _(
     input_fiscal_year,
-    input_product,
     input_product_category,
     input_product_subcategory,
     input_sales_channel,
@@ -367,14 +374,9 @@ def _(
             input_sales_channel,
             input_product_category,
             input_product_subcategory,
-            input_product,
+            # input_product,
         ]
     )
-    return
-
-
-@app.cell
-def _():
     return
 
 
