@@ -386,28 +386,8 @@ def _(
     table_sales_internet,
     table_sales_reseller,
 ):
-    product_keys = sqlcon.sql(f"""
-    SELECT {product_key}
-    FROM {table_product}
-    WHERE {product_name} IN ('{"', '".join(input_product.value)}')
-    """).execute()
-
-    product_keys = product_keys[product_key].tolist()
-    product_keys = ", ".join(map(str, product_keys))
+    selected_products = "', '".join(input_product.value)
     # Channel sales
-
-    # if "internet_sales" in con.list_tables():
-    #     con.drop_table("internet_sales")
-    # con.create_table(
-    #     "internet_sales",
-    #     sqlcon.sql(f"""
-    #     SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
-    #     FROM {table_sales_internet}
-    #     JOIN {table_date}
-    #     ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
-    #     WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-    #     """).execute(),
-    # )
 
     sales_channel_internet = sqlcon.sql(f"""
     SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
@@ -415,7 +395,11 @@ def _(
     JOIN {table_date}
     ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
     WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-    AND {table_sales_internet}.{product_key} IN ('{product_keys}')
+    AND {table_sales_internet}.{product_key} IN (
+        SELECT {product_key}
+        FROM {table_product}
+        WHERE {product_name} IN ('{selected_products}')
+    )
     """).execute().iat[0, 0]
 
     # sales_channel_internet = con.table("internet_sales").execute().iat[0, 0]
