@@ -179,7 +179,7 @@ def relationships():
     # {table_product}.ProductKey,
     # {table_product}.{product_name}
     # FROM {table_product_category}
-    # JOIN {table_product_subcategory} 
+    # JOIN {table_product_subcategory}
     #     ON {table_product_category}.ProductCategoryKey = {table_product_subcategory}.ProductCategoryKey
     # JOIN {table_product}
     #     ON {table_product_subcategory}.ProductSubcategoryKey = {table_product}.ProductSubcategoryKey
@@ -336,6 +336,7 @@ def _(
     product_key,
     product_name,
     product_subcategory_key,
+    product_subcategory_name,
     sqlcon,
     table_product,
     table_product_subcategory,
@@ -348,7 +349,7 @@ def _(
     WHERE {product_subcategory_key} IN (
         SELECT {product_subcategory_key}
         FROM {table_product_subcategory}
-        WHERE {product_name} IN ('{selected_subcategories}')
+        WHERE {product_subcategory_name} IN ('{selected_subcategories}')
     )
     ORDER BY {product_key}
     """).execute()
