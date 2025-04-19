@@ -347,27 +347,29 @@ def _(input_product_subcategory):
 
 @app.cell
 def _(
+    con,
     input_product_category,
     mo,
     product_category_name,
     table_category_subcategory_product,
 ):
     product_filter_dependency = table_category_subcategory_product
+    selected_categories = "', '".join(input_product_category.value)
 
-    # product_filter_dependency = sqlcon.sql(f"""
-    # SELECT *
-    # FROM {product_filter_dependency}
-    # WHERE {product_category_name} IN ({input_product_category.value});
-    # """)
+    product_filter_dependency = con.sql(f"""
+    SELECT *
+    FROM category_subcategory_product
+    WHERE {product_category_name} IN ('{selected_categories}');
+    """)
 
-    product_filter_dependency = product_filter_dependency.filter(
-        product_filter_dependency[f"{product_category_name}"].isin(
-            input_product_category.value
-        )
-    )
+    # product_filter_dependency = product_filter_dependency.filter(
+    #     product_filter_dependency[f"{product_category_name}"].isin(
+    #         input_product_category.value
+    #     )
+    # )
 
     mo.ui.table(product_filter_dependency)
-    return (product_filter_dependency,)
+    return product_filter_dependency, selected_categories
 
 
 @app.cell
