@@ -1,6 +1,8 @@
+
+
 import marimo
 
-__generated_with = "0.12.10"
+__generated_with = "0.13.0"
 app = marimo.App(
     width="medium",
     app_title="Adventure Works Sales",
@@ -8,9 +10,8 @@ app = marimo.App(
     sql_output="native",
 )
 
-
-@app.cell
-def imports():
+with app.setup:
+    # Initialization code that runs before all other cells
     import os
     import marimo as mo
     import altair as alt
@@ -18,11 +19,11 @@ def imports():
     import ibis
     from decimal import Decimal
     import ibis.expr.datatypes as dt
-    return Decimal, alt, dt, ibis, mo, os, pd
+    import locale
 
 
 @app.cell
-def settings(ibis, mo, os):
+def settings():
     # Settings for database connections
 
     con = ibis.duckdb.connect()
@@ -41,11 +42,11 @@ def settings(ibis, mo, os):
     # Language settings
     input_language = mo.ui.dropdown(
         options={
-            "English/Inglés": "0",
-            "Spanish/Español": "1",
+            "English / Inglés": "0",
+            "Spanish / Español": "1",
         },
-        value="English/Inglés",
-        label="<strong>Language/Lenguaje: </strong>",
+        value="English / Inglés",
+        label="<strong>Language / Idioma: </strong>",
     )
     return con, input_language, sqlcon
 
@@ -57,12 +58,13 @@ def _(input_language):
 
 
 @app.cell
-def language_variations(input_language, mo):
+def language_variations(input_language):
     # Label variations for different languages
 
     match input_language.value:
         # English labels
         case "0":
+            locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
             input_fiscal_year_label = "<strong>Fiscal Year: </strong>"
             input_sales_channel_title = (
                 "<strong>Filter sales channels by: </strong>"
@@ -80,6 +82,9 @@ def language_variations(input_language, mo):
 
         # Spanish labels
         case "1":
+            locale.setlocale(locale.LC_ALL, "es_AR.UTF-8")
+            thousands_separator = "."
+            decimal_separator = ","
             input_fiscal_year_label = "<strong>Año Fiscal: </strong>"
             input_sales_channel_title = (
                 "<strong>Filtrar canales de venta por: </strong>"
@@ -163,14 +168,7 @@ def quick_queries(
     qq_table_product = sqlcon.sql(f"SELECT * FROM {table_product}")
     qq_table_sales_reseller = sqlcon.sql(f"SELECT * FROM {table_sales_reseller}")
     qq_table_sales_internet = sqlcon.sql(f"SELECT * FROM {table_sales_internet}")
-    return (
-        qq_table_date,
-        qq_table_product,
-        qq_table_product_category,
-        qq_table_product_subcategory,
-        qq_table_sales_internet,
-        qq_table_sales_reseller,
-    )
+    return
 
 
 @app.cell
@@ -206,7 +204,7 @@ def relationships():
 
 
 @app.cell
-def _(input_channel_internet_label, input_channel_resellers_label, mo):
+def _(input_channel_internet_label, input_channel_resellers_label):
     list_fiscalyear = {
         "FY2018": "2018",
         "FY2019": "2019",
@@ -251,7 +249,6 @@ def _(
     input_product_category_label,
     input_sales_channel_title,
     list_fiscalyear,
-    mo,
     product_category_key,
     product_category_name,
     sqlcon,
@@ -285,19 +282,13 @@ def _(
         value=list_category[f"{product_category_name}"],
         label=input_product_category_label,
     )
-    return (
-        input_fiscal_year,
-        input_product_category,
-        input_sales_channel,
-        list_category,
-    )
+    return input_fiscal_year, input_product_category, input_sales_channel
 
 
 @app.cell
 def _(
     input_product_category,
     input_product_subcategory_label,
-    mo,
     product_category_key,
     product_category_name,
     product_subcategory_key,
@@ -324,14 +315,13 @@ def _(
         value=list_subcategory[f"{product_subcategory_name}"],
         label=input_product_subcategory_label,
     )
-    return input_product_subcategory, list_subcategory, selected_categories
+    return (input_product_subcategory,)
 
 
 @app.cell
 def _(
     input_product_label,
     input_product_subcategory,
-    mo,
     product_key,
     product_name,
     product_subcategory_key,
@@ -358,7 +348,7 @@ def _(
         value=list_product[f"{product_name}"],
         label=input_product_label,
     )
-    return input_product, list_product, selected_subcategories
+    return (input_product,)
 
 
 @app.cell
@@ -369,7 +359,6 @@ def _(
     input_product_subcategory,
     input_product_title,
     input_sales_channel,
-    mo,
 ):
     mo.vstack(
         [
@@ -427,10 +416,11 @@ def _(
 
     sales_channel_all = sales_channel_internet + sales_channel_reseller
 
+
     # Format results with thousands and decimal separators
-    sales_channel_internet = f"{sales_channel_internet:,.0f}"
-    sales_channel_reseller = f"{sales_channel_reseller:,.0f}"
-    sales_channel_all = f"{sales_channel_all:,.0f}"
+    sales_channel_internet = locale.format_string("%.2f", sales_channel_internet, grouping=True)
+    sales_channel_reseller = locale.format_string("%.2f", sales_channel_reseller, grouping=True)
+    sales_channel_all = locale.format_string("%.2f", sales_channel_all, grouping=True)
 
     # Alternativa usando alias para las tablas
     # reseller_sales = sqlcon.sql(f"""SELECT SUM(i.SalesAmount) AS TotalResellerSales
@@ -461,7 +451,7 @@ def _(sales_channel_all):
 
 
 @app.cell
-def _(mo, sales_channel_all, sales_total_title):
+def _(sales_channel_all, sales_total_title):
     mo.callout(f"{sales_total_title} {sales_channel_all}")
     return
 
