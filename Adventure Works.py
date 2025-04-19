@@ -64,7 +64,8 @@ def language_variations(input_language):
         # English labels
         case "0":
             input_fiscal_year_label = "Fiscal Year: "
-            input_sales_channel_title = "Sales channels: "
+            input_sales_channel_title = "Filter sales channels by: "
+            input_product_title = "Filter products by: "
             input_channel_internet_label = "Internet"
             input_channel_resellers_label = "Resellers"
             product_category_name = "EnglishProductCategoryName"
@@ -78,7 +79,8 @@ def language_variations(input_language):
         # Spanish labels
         case "1":
             input_fiscal_year_label = "Año Fiscal: "
-            input_sales_channel_title = "Canales de venta: "
+            input_sales_channel_title = "Filtrar canales de venta por: "
+            input_product_title = "Filtrar productos por: "
             input_channel_internet_label = "Internet"
             input_channel_resellers_label = "Revendedores"
             product_category_name = "SpanishProductCategoryName"
@@ -100,6 +102,7 @@ def language_variations(input_language):
         input_product_category_label,
         input_product_label,
         input_product_subcategory_label,
+        input_product_title,
         input_sales_channel_title,
         product_category_key,
         product_category_name,
@@ -199,13 +202,7 @@ def relationships():
 
 
 @app.cell
-def filter_sources(
-    input_channel_internet_label,
-    input_channel_resellers_label,
-    mo,
-):
-    # Data sources for the different filtering criteria
-
+def _(input_channel_internet_label, input_channel_resellers_label, mo):
     list_fiscalyear = {
         "FY2018": "2018",
         "FY2019": "2019",
@@ -243,7 +240,7 @@ def filter_sources(
 
 
 @app.cell
-def inputs(
+def _(
     input_channel_internet,
     input_channel_resellers,
     input_fiscal_year_label,
@@ -256,8 +253,6 @@ def inputs(
     sqlcon,
     table_product_category,
 ):
-    # User inputs for data visualization and analysis
-
     input_fiscal_year = mo.ui.dropdown(
         options=list_fiscalyear,
         value="FY2018",
@@ -368,6 +363,7 @@ def _(
     input_product,
     input_product_category,
     input_product_subcategory,
+    input_product_title,
     input_sales_channel,
     mo,
 ):
@@ -375,6 +371,7 @@ def _(
         [
             input_fiscal_year,
             input_sales_channel,
+            input_product_title,
             input_product_category,
             input_product_subcategory,
             input_product,
