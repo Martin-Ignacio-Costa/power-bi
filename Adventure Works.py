@@ -204,59 +204,13 @@ def relationships():
 
 
 @app.cell
-def _(input_channel_internet_label, input_channel_resellers_label):
-    list_fiscalyear = {
-        "FY2018": "2018",
-        "FY2019": "2019",
-        "FY2020": "2020",
-    }
-
-    input_channel_internet = mo.ui.checkbox(
-        label=input_channel_internet_label, value=True
-    )
-    input_channel_resellers = mo.ui.checkbox(
-        label=input_channel_resellers_label, value=True
-    )
-
-    # # Generate a list of product categories in the DB to use as filtering criteria
-    # list_category = con.sql(f"""
-    # SELECT DISTINCT {product_category_name}, ProductCategoryKey
-    # FROM category_subcategory_product
-    # ORDER BY ProductCategoryKey
-    # """).execute()
-
-    # # Generate a list of product subcategories in the DB to use as filtering criteria
-    # list_subcategory = con.sql(f"""
-    # SELECT DISTINCT {product_subcategory_name}, ProductSubcategoryKey
-    # FROM category_subcategory_product
-    # ORDER BY ProductSubcategoryKey
-    # """).execute()
-
-    # # Generate a list of products in the DB to use as filtering criteria
-    # list_product = con.sql(f"""
-    # SELECT DISTINCT {product_name}, ProductKey
-    # FROM category_subcategory_product
-    # ORDER BY ProductKey
-    # """).execute()
-    return input_channel_internet, input_channel_resellers, list_fiscalyear
-
-
-@app.cell
 def _(
-    input_fiscal_year_label,
     input_product_category_label,
-    list_fiscalyear,
     product_category_key,
     product_category_name,
     sqlcon,
     table_product_category,
 ):
-    input_fiscal_year = mo.ui.dropdown(
-        options=list_fiscalyear,
-        value="FY2018",
-        label=input_fiscal_year_label,
-    )
-
     # Generate a list of product categories in the DB to use as filtering criteria
     list_category = sqlcon.sql(f"""
     SELECT DISTINCT {product_category_name}, {product_category_key}
@@ -269,7 +223,7 @@ def _(
         value=list_category[f"{product_category_name}"],
         label=input_product_category_label,
     )
-    return input_fiscal_year, input_product_category
+    return (input_product_category,)
 
 
 @app.cell
@@ -307,6 +261,9 @@ def _(
 
 @app.cell
 def _(
+    input_channel_internet_label,
+    input_channel_resellers_label,
+    input_fiscal_year_label,
     input_product_label,
     input_product_subcategory,
     product_key,
@@ -317,6 +274,25 @@ def _(
     table_product,
     table_product_subcategory,
 ):
+    list_fiscalyear = {
+        "FY2018": "2018",
+        "FY2019": "2019",
+        "FY2020": "2020",
+    }
+
+    input_channel_internet = mo.ui.checkbox(
+        label=input_channel_internet_label, value=True
+    )
+    input_channel_resellers = mo.ui.checkbox(
+        label=input_channel_resellers_label, value=True
+    )
+
+    input_fiscal_year = mo.ui.dropdown(
+        options=list_fiscalyear,
+        value="FY2018",
+        label=input_fiscal_year_label,
+    )
+
     # Generate a list of products in the DB to use as filtering criteria
     selected_subcategories = "', '".join(input_product_subcategory.value)
     list_product = sqlcon.sql(f"""
@@ -335,7 +311,12 @@ def _(
         value=list_product[f"{product_name}"],
         label=input_product_label,
     )
-    return (input_product,)
+    return (
+        input_channel_internet,
+        input_channel_resellers,
+        input_fiscal_year,
+        input_product,
+    )
 
 
 @app.cell
@@ -352,7 +333,6 @@ def _(
     mo.vstack(
         [
             input_fiscal_year,
-            # input_sales_channel,
             mo.md(input_sales_channel_title),
             input_channel_internet,
             input_channel_resellers,
@@ -386,7 +366,8 @@ def _(
     # Channel sales
 
     if input_channel_internet.value == True:
-        sales_channel_internet = sqlcon.sql(f"""
+        sales_channel_internet = (
+            sqlcon.sql(f"""
         SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
         FROM {table_sales_internet}
         JOIN {table_date}
@@ -398,12 +379,16 @@ def _(
             WHERE {product_name} IN ('{selected_products}')
             AND {product_subcategory_key} IS NOT NULL
         )
-        """).execute().iat[0, 0]
+        """)
+            .execute()
+            .iat[0, 0]
+        )
     else:
         sales_channel_internet = 0
 
     if input_channel_resellers.value == True:
-        sales_channel_resellers = sqlcon.sql(f"""
+        sales_channel_resellers = (
+            sqlcon.sql(f"""
         SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales
         FROM {table_sales_reseller}
         JOIN {table_date}
@@ -415,7 +400,10 @@ def _(
             WHERE {product_name} IN ('{selected_products}')
             AND {product_subcategory_key} IS NOT NULL
         )
-        """).execute().iat[0, 0]
+        """)
+            .execute()
+            .iat[0, 0]
+        )
     else:
         sales_channel_resellers = 0
 
