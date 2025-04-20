@@ -380,8 +380,12 @@ def _(
     if input_channel_internet.value == True:
         sales_profit_channel_internet = sqlcon.sql(f"""
         SELECT 
-            CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) AS InternetSales,
-            CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) AS InternetProfit
+            CASE WHEN COUNT(*) = 0 THEN 0
+                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) 
+                END AS InternetSales,
+            CASE WHEN COUNT(*) = 0 THEN 0
+                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
+                END AS InternetProfit
         FROM {table_sales_internet}
         JOIN {table_date}
         ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
@@ -438,32 +442,7 @@ def _(
         fstrd(sales_channel_all),
         fstrd(profit_channel_all),
     )
-    return (
-        profit_channel_all,
-        sales_channel_all,
-        sales_channel_internet,
-        sales_channel_resellers,
-        sales_profit_channel_internet,
-    )
-
-
-@app.cell
-def _(sales_channel_resellers):
-    sales_channel_resellers
-    return
-
-
-@app.cell
-def _(sales_profit_channel_internet):
-    print(sales_profit_channel_internet)
-    print(type(sales_profit_channel_internet))
-    return
-
-
-@app.cell
-def _(sales_channel_internet):
-    sales_channel_internet
-    return
+    return profit_channel_all, sales_channel_all
 
 
 @app.cell
