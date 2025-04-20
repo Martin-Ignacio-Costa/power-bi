@@ -101,6 +101,7 @@ def language_variations(input_language):
             input_product_label = "Products: "
             sales_total_title = "Sales $"
             profit_total_title = "Profit $"
+            fy_dates_title = "Period covered: "
 
         # Spanish labels
         case "1":
@@ -122,12 +123,14 @@ def language_variations(input_language):
             input_product_label = "Productos: "
             sales_total_title = "Ventas US$"
             profit_total_title = "Ganancias US$"
+            fy_dates_title = "Período comprendido: "
 
     # Language-independent variables
     product_category_key = "ProductCategoryKey"
     product_subcategory_key = "ProductSubcategoryKey"
     product_key = "ProductKey"
     return (
+        fy_dates_title,
         input_channel_internet_label,
         input_channel_resellers_label,
         input_fiscal_year_label,
@@ -418,8 +421,8 @@ def sales_profit(
             --AND {product_subcategory_key} IS NOT NULL
         )
         """).execute()
-        sales_channel_internet = sales_profit_channel_internet["InternetSales"]
-        profit_channel_internet = sales_profit_channel_internet["InternetProfit"]
+        sales_channel_internet = sales_profit_channel_internet["InternetSales"].iat[0]
+        profit_channel_internet = sales_profit_channel_internet["InternetProfit"].iat[0]
     else:
         sales_channel_internet = 0
         profit_channel_internet = 0
@@ -449,8 +452,8 @@ def sales_profit(
             --AND {product_subcategory_key} IS NOT NULL
         )
         """).execute()
-        sales_channel_resellers = sales_profit_channel_resellers["ResellerSales"]
-        profit_channel_resellers = sales_profit_channel_resellers["ResellerProfit"]
+        sales_channel_resellers = sales_profit_channel_resellers["ResellerSales"].iat[0]
+        profit_channel_resellers = sales_profit_channel_resellers["ResellerProfit"].iat[0]
     else:
         sales_channel_resellers = 0
         profit_channel_resellers = 0
@@ -458,12 +461,20 @@ def sales_profit(
     sales_channel_all = sales_channel_internet + sales_channel_resellers
     profit_channel_all = profit_channel_internet + profit_channel_resellers
 
+    sales_millions = str(round(sales_channel_all / 1_000_000, 2))
+    profit_millions = str(round(profit_channel_all / 1_000_000, 2))
+
     # Format results with thousands and decimal separators
     sales_channel_all, profit_channel_all = (
         locale_decimal(sales_channel_all),
         locale_decimal(profit_channel_all),
     )
-    return profit_channel_all, sales_channel_all
+    return (
+        profit_channel_all,
+        profit_millions,
+        sales_channel_all,
+        sales_millions,
+    )
 
 
 @app.cell
@@ -505,18 +516,30 @@ def _(input_fiscal_year, locale_date, sqlcon, table_date):
 
     fy_start_date = locale_date(date(fy_start_year, fy_start_month, fy_start_day))
     fy_end_date = locale_date(date(fy_end_year, fy_end_month, fy_end_day))
-    return (fy_start_date,)
+    return fy_end_date, fy_start_date
 
 
 @app.cell
-def _(fy_start_date):
-    fy_start_date
+def _(fy_dates_title, fy_end_date, fy_start_date):
+    mo.md(f"{fy_dates_title} {fy_start_date} - {fy_end_date}")
     return
 
 
 @app.cell
 def _(sales_channel_all, sales_total_title):
     mo.callout(f"{sales_total_title} {sales_channel_all}")
+    return
+
+
+@app.cell
+def _(sales_millions):
+    mo.md(f'{sales_millions}M')
+    return
+
+
+@app.cell
+def _(profit_millions):
+    mo.md(f'{profit_millions}M')
     return
 
 
