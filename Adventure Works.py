@@ -334,7 +334,7 @@ def products(
 
 
 @app.cell
-def _(
+def input_filters(
     input_channel_internet,
     input_channel_resellers,
     input_fiscal_year,
@@ -364,7 +364,7 @@ def _(
 
 
 @app.cell
-def _(
+def sales_profit(
     input_channel_internet,
     input_channel_resellers,
     input_fiscal_year,
@@ -450,6 +450,53 @@ def _(
         fstrd(profit_channel_all),
     )
     return profit_channel_all, sales_channel_all
+
+
+@app.cell
+def _(input_fiscal_year, sqlcon, table_date):
+    # Fiscal year dates
+    fy_min_dates = sqlcon.sql(f"""
+    SELECT 
+        DayNumberOfYear AS StartDay,
+        MonthNumberOfYear AS StartMonth,
+        CalendarYear AS StartYear
+    FROM {table_date}
+    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+    AND DateKey = (
+        SELECT MIN(DateKey)
+        FROM {table_date}
+        WHERE FiscalYear = {input_fiscal_year.value}
+    )
+    """).execute()
+
+    fy_max_dates = sqlcon.sql(f"""
+    SELECT 
+        DayNumberOfYear AS EndDay,
+        MonthNumberOfYear AS EndMonth,
+        CalendarYear AS EndYear
+    FROM {table_date}
+    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+    AND DateKey = (
+        SELECT MAX(DateKey)
+        FROM {table_date}
+        WHERE FiscalYear = {input_fiscal_year.value}
+    )
+    """).execute()
+
+    fy_start_day = fy_min_dates['StartDay']
+    fy_start_month = fy_min_dates['StartMonth']
+    fy_start_year = fy_min_dates['StartYear']
+
+    fy_end_day = fy_max_dates['EndDay']
+    fy_end_month = fy_max_dates['EndMonth']
+    fy_end_year = fy_max_dates['EndYear']
+    return (fy_end_month,)
+
+
+@app.cell
+def _(fy_end_month):
+    fy_end_month
+    return
 
 
 @app.cell
