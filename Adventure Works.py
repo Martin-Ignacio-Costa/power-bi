@@ -33,7 +33,7 @@ def fstrd(value):
 
 
 @app.cell
-def settings():
+def db_settings():
     # Settings for database connections
 
     con = ibis.duckdb.connect()
@@ -48,7 +48,11 @@ def settings():
         driver="SQL Server",
         port=os.environ["SQLSERVER_PORT"],
     )
+    return (sqlcon,)
 
+
+@app.cell
+def language_settings():
     # Language settings
     input_language = mo.ui.dropdown(
         options={
@@ -58,7 +62,7 @@ def settings():
         value="English / Inglés",
         label="<strong>Language / Idioma: </strong>",
     )
-    return input_language, sqlcon
+    return (input_language,)
 
 
 @app.cell
@@ -211,7 +215,37 @@ def relationships():
 
 
 @app.cell
-def _(
+def fiscal_year(input_fiscal_year_label):
+    list_fiscalyear = {
+        "FY2018": "2018",
+        "FY2019": "2019",
+        "FY2020": "2020",
+    }
+
+    input_fiscal_year = mo.ui.dropdown(
+        options=list_fiscalyear,
+        value="FY2018",
+        label=input_fiscal_year_label,
+    )
+    return (input_fiscal_year,)
+
+
+@app.cell
+def sales_channels(
+    input_channel_internet_label,
+    input_channel_resellers_label,
+):
+    input_channel_internet = mo.ui.checkbox(
+        label=input_channel_internet_label, value=True
+    )
+    input_channel_resellers = mo.ui.checkbox(
+        label=input_channel_resellers_label, value=True
+    )
+    return input_channel_internet, input_channel_resellers
+
+
+@app.cell
+def product_categories(
     input_product_category_label,
     product_category_key,
     product_category_name,
@@ -234,7 +268,7 @@ def _(
 
 
 @app.cell
-def _(
+def product_subcategories(
     input_product_category,
     input_product_subcategory_label,
     product_category_key,
@@ -267,10 +301,7 @@ def _(
 
 
 @app.cell
-def _(
-    input_channel_internet_label,
-    input_channel_resellers_label,
-    input_fiscal_year_label,
+def products(
     input_product_label,
     input_product_subcategory,
     product_key,
@@ -281,25 +312,6 @@ def _(
     table_product,
     table_product_subcategory,
 ):
-    list_fiscalyear = {
-        "FY2018": "2018",
-        "FY2019": "2019",
-        "FY2020": "2020",
-    }
-
-    input_channel_internet = mo.ui.checkbox(
-        label=input_channel_internet_label, value=True
-    )
-    input_channel_resellers = mo.ui.checkbox(
-        label=input_channel_resellers_label, value=True
-    )
-
-    input_fiscal_year = mo.ui.dropdown(
-        options=list_fiscalyear,
-        value="FY2018",
-        label=input_fiscal_year_label,
-    )
-
     # Generate a list of products in the DB to use as filtering criteria
     selected_subcategories = "', '".join(input_product_subcategory.value)
     list_product = sqlcon.sql(f"""
@@ -318,12 +330,7 @@ def _(
         value=list_product[f"{product_name}"],
         label=input_product_label,
     )
-    return (
-        input_channel_internet,
-        input_channel_resellers,
-        input_fiscal_year,
-        input_product,
-    )
+    return (input_product,)
 
 
 @app.cell
