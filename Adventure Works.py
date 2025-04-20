@@ -15,21 +15,34 @@ with app.setup:
     import os
     import marimo as mo
     import altair as alt
-    import pandas as pd
     import ibis
-    from decimal import Decimal
     import ibis.expr.datatypes as dt
+    from decimal import Decimal
+    from datetime import datetime
+    from datetime import date
     import locale
 
 
-@app.function
-def fstrd(value):
-    """
-    Transforms a numeric value into a string formatted as a decimal using the corresponding regional thousands and decimals separators
-    """
-    if hasattr(value, "iloc"):
-        value = value.iloc[0]
-    return locale.format_string("%.2f", value, grouping=True)
+@app.cell
+def functions(input_language):
+    def locale_decimal(value):
+        """
+        Transforms a numeric value into a string formatted as a decimal using the corresponding regional thousands and decimals separators
+        """
+        if hasattr(value, "iloc"):
+            value = value.iloc[0]
+        return locale.format_string("%.2f", value, grouping=True)
+
+
+    def locale_date(date):
+        """
+        Converts a date into a string formatted for the regional configuration
+        """
+        if input_language.value == "0":
+            return date.strftime("%m/%d/%Y")
+        elif input_language.value == "1":
+            return date.strftime("%d/%m/%Y")
+    return locale_date, locale_decimal
 
 
 @app.cell
@@ -369,6 +382,7 @@ def sales_profit(
     input_channel_resellers,
     input_fiscal_year,
     input_product,
+    locale_decimal,
     product_key,
     product_name,
     product_subcategory_key,
@@ -446,23 +460,22 @@ def sales_profit(
 
     # Format results with thousands and decimal separators
     sales_channel_all, profit_channel_all = (
-        fstrd(sales_channel_all),
-        fstrd(profit_channel_all),
+        locale_decimal(sales_channel_all),
+        locale_decimal(profit_channel_all),
     )
     return profit_channel_all, sales_channel_all
 
 
 @app.cell
-def _(input_fiscal_year, sqlcon, table_date):
+def _(input_fiscal_year, locale_date, sqlcon, table_date):
     # Fiscal year dates
     fy_min_dates = sqlcon.sql(f"""
     SELECT 
-        DayNumberOfYear AS StartDay,
+        DayNumberOfMonth AS StartDay,
         MonthNumberOfYear AS StartMonth,
         CalendarYear AS StartYear
     FROM {table_date}
-    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-    AND DateKey = (
+    WHERE DateKey = (
         SELECT MIN(DateKey)
         FROM {table_date}
         WHERE FiscalYear = {input_fiscal_year.value}
@@ -471,31 +484,33 @@ def _(input_fiscal_year, sqlcon, table_date):
 
     fy_max_dates = sqlcon.sql(f"""
     SELECT 
-        DayNumberOfYear AS EndDay,
+        DayNumberOfMonth AS EndDay,
         MonthNumberOfYear AS EndMonth,
         CalendarYear AS EndYear
     FROM {table_date}
-    WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-    AND DateKey = (
+    WHERE DateKey = (
         SELECT MAX(DateKey)
         FROM {table_date}
         WHERE FiscalYear = {input_fiscal_year.value}
     )
     """).execute()
 
-    fy_start_day = fy_min_dates['StartDay']
-    fy_start_month = fy_min_dates['StartMonth']
-    fy_start_year = fy_min_dates['StartYear']
+    fy_start_day = fy_min_dates["StartDay"].iat[0]
+    fy_start_month = fy_min_dates["StartMonth"].iat[0]
+    fy_start_year = fy_min_dates["StartYear"].iat[0]
 
-    fy_end_day = fy_max_dates['EndDay']
-    fy_end_month = fy_max_dates['EndMonth']
-    fy_end_year = fy_max_dates['EndYear']
-    return (fy_end_month,)
+    fy_end_day = fy_max_dates["EndDay"].iat[0]
+    fy_end_month = fy_max_dates["EndMonth"].iat[0]
+    fy_end_year = fy_max_dates["EndYear"].iat[0]
+
+    fy_start_date = locale_date(date(fy_start_year, fy_start_month, fy_start_day))
+    fy_end_date = locale_date(date(fy_end_year, fy_end_month, fy_end_day))
+    return (fy_start_date,)
 
 
 @app.cell
-def _(fy_end_month):
-    fy_end_month
+def _(fy_start_date):
+    fy_start_date
     return
 
 
