@@ -22,6 +22,15 @@ with app.setup:
     import locale
 
 
+@app.function
+def fstrd(value):
+    """
+    Transforms a numeric value into a string formatted as a decimal using the corresponding regional thousands and decimals separators
+    """
+
+    return locale.format_string("%.2f", value, grouping=True)
+
+
 @app.cell
 def settings():
     # Settings for database connections
@@ -359,7 +368,8 @@ def _(
     table_sales_reseller,
 ):
     selected_products = "', '".join(
-        product.replace("'", "''") for product in input_product.value)
+        product.replace("'", "''") for product in input_product.value
+    )
 
     # Channel sales
     sales_channel_internet = 0
@@ -410,14 +420,10 @@ def _(
     sales_channel_all = sales_channel_internet + sales_channel_resellers
 
     # Format results with thousands and decimal separators
-    sales_channel_internet = locale.format_string(
-        "%.2f", sales_channel_internet, grouping=True
-    )
-    sales_channel_resellers = locale.format_string(
-        "%.2f", sales_channel_resellers, grouping=True
-    )
-    sales_channel_all = locale.format_string(
-        "%.2f", sales_channel_all, grouping=True
+    sales_channel_internet, sales_channel_resellers, sales_channel_all = (
+        fstrd(sales_channel_internet),
+        fstrd(sales_channel_resellers),
+        fstrd(sales_channel_all),
     )
     return sales_channel_all, sales_channel_internet, sales_channel_resellers
 
@@ -443,6 +449,19 @@ def _(sales_channel_all):
 @app.cell
 def _(sales_channel_all, sales_total_title):
     mo.callout(f"{sales_total_title} {sales_channel_all}")
+    return
+
+
+@app.cell
+def _():
+    hello_world = mo.Html("<h2>Hello, World</h2>")
+    mo.Html(
+        f"""
+        <h1>Hello, Universe!</h1>
+        {hello_world}
+        <span style="color: red; font-family: Arial; font-size: 20px;">This text is red, Arial, and 20px!</span>
+        """
+    )
     return
 
 
