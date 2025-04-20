@@ -411,8 +411,12 @@ def _(
     if input_channel_resellers.value == True:
         sales_profit_channel_resellers = sqlcon.sql(f"""
         SELECT 
-            CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) AS ResellerSales,
-            CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) AS ResellerProfit
+            CASE WHEN COUNT(*) = 0 THEN 0
+                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) 
+                END AS ResellerSales,
+            CASE WHEN COUNT(*) = 0 THEN 0
+                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
+                END AS ResellerProfit
         FROM {table_sales_reseller}
         JOIN {table_date}
         ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
@@ -429,10 +433,6 @@ def _(
     else:
         sales_channel_resellers = 0
         profit_channel_resellers = 0
-
-    # if sales_profit_channel_resellers is None or sales_profit_channel_resellers.empty:
-    #     sales_channel_resellers = 0
-    #     profit_channel_resellers = 0
 
     sales_channel_all = sales_channel_internet + sales_channel_resellers
     profit_channel_all = profit_channel_internet + profit_channel_resellers
