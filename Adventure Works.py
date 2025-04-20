@@ -27,7 +27,8 @@ def fstrd(value):
     """
     Transforms a numeric value into a string formatted as a decimal using the corresponding regional thousands and decimals separators
     """
-
+    if hasattr(value, "iloc"):
+        value = value.iloc[0]
     return locale.format_string("%.2f", value, grouping=True)
 
 
@@ -82,6 +83,7 @@ def language_variations(input_language):
             input_product_subcategory_label = "Subcategories: "
             input_product_label = "Products: "
             sales_total_title = "Sales $"
+            profit_total_title = "Profit $"
 
         # Spanish labels
         case "1":
@@ -102,6 +104,7 @@ def language_variations(input_language):
             input_product_subcategory_label = "Subcategorías: "
             input_product_label = "Productos: "
             sales_total_title = "Ventas US$"
+            profit_total_title = "Ganancias US$"
 
     # Language-independent variables
     product_category_key = "ProductCategoryKey"
@@ -122,6 +125,7 @@ def language_variations(input_language):
         product_name,
         product_subcategory_key,
         product_subcategory_name,
+        profit_total_title,
         sales_total_title,
     )
 
@@ -371,14 +375,13 @@ def _(
         product.replace("'", "''") for product in input_product.value
     )
 
-    # Channel sales
-    sales_channel_internet = 0
-    sales_channel_resellers = 0
+    # Channel sales and profit
 
     if input_channel_internet.value == True:
-        sales_channel_internet = (
-            sqlcon.sql(f"""
-        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales
+        sales_profit_channel_internet = sqlcon.sql(f"""
+        SELECT 
+            CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales,
+            CAST(ROUND(SUM(SalesAmount - TotalProductCost), 0) AS DECIMAL(13, 2)) AS InternetProfit
         FROM {table_sales_internet}
         JOIN {table_date}
         ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
@@ -389,17 +392,22 @@ def _(
             WHERE {product_name} IN ('{selected_products}')
             --AND {product_subcategory_key} IS NOT NULL
         )
-        """)
-            .execute()
-            .iat[0, 0]
-        )
-    if sales_channel_internet is None:
+        """).execute()
+    else:
+        sales_profit_channel_internet = None
+
+    if sales_profit_channel_internet is None:
         sales_channel_internet = 0
+        profit_channel_internet = 0
+    else:
+        sales_channel_internet = sales_profit_channel_internet["InternetSales"]
+        profit_channel_internet = sales_profit_channel_internet["InternetProfit"]
 
     if input_channel_resellers.value == True:
-        sales_channel_resellers = (
-            sqlcon.sql(f"""
-        SELECT CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales
+        sales_profit_channel_resellers = sqlcon.sql(f"""
+        SELECT 
+            CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales,
+            CAST(ROUND(SUM(SalesAmount - TotalProductCost), 0) AS DECIMAL(13, 2)) AS ResellerProfit
         FROM {table_sales_reseller}
         JOIN {table_date}
         ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
@@ -410,45 +418,37 @@ def _(
             WHERE {product_name} IN ('{selected_products}')
             --AND {product_subcategory_key} IS NOT NULL
         )
-        """)
-            .execute()
-            .iat[0, 0]
-        )
-    if sales_channel_resellers is None:
+        """).execute()
+    else:
+        sales_profit_channel_resellers = None
+
+    if sales_profit_channel_resellers is None:
         sales_channel_resellers = 0
+        profit_channel_resellers = 0
+    else:
+        sales_channel_resellers = sales_profit_channel_resellers["ResellerSales"]
+        profit_channel_resellers = sales_profit_channel_resellers["ResellerProfit"]
 
     sales_channel_all = sales_channel_internet + sales_channel_resellers
+    profit_channel_all = profit_channel_internet + profit_channel_resellers
 
     # Format results with thousands and decimal separators
-    sales_channel_internet, sales_channel_resellers, sales_channel_all = (
-        fstrd(sales_channel_internet),
-        fstrd(sales_channel_resellers),
+    sales_channel_all, profit_channel_all = (
         fstrd(sales_channel_all),
+        fstrd(profit_channel_all),
     )
-    return sales_channel_all, sales_channel_internet, sales_channel_resellers
-
-
-@app.cell
-def _(sales_channel_internet):
-    sales_channel_internet
-    return
-
-
-@app.cell
-def _(sales_channel_resellers):
-    sales_channel_resellers
-    return
-
-
-@app.cell
-def _(sales_channel_all):
-    sales_channel_all
-    return
+    return profit_channel_all, sales_channel_all
 
 
 @app.cell
 def _(sales_channel_all, sales_total_title):
     mo.callout(f"{sales_total_title} {sales_channel_all}")
+    return
+
+
+@app.cell
+def _(profit_channel_all, profit_total_title):
+    mo.callout(f"{profit_total_title} {profit_channel_all}")
     return
 
 
