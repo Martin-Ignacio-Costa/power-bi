@@ -380,8 +380,8 @@ def _(
     if input_channel_internet.value == True:
         sales_profit_channel_internet = sqlcon.sql(f"""
         SELECT 
-            CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS InternetSales,
-            CAST(ROUND(SUM(SalesAmount - TotalProductCost), 0) AS DECIMAL(13, 2)) AS InternetProfit
+            CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) AS InternetSales,
+            CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) AS InternetProfit
         FROM {table_sales_internet}
         JOIN {table_date}
         ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
@@ -393,21 +393,22 @@ def _(
             --AND {product_subcategory_key} IS NOT NULL
         )
         """).execute()
-    else:
-        sales_profit_channel_internet = None
-
-    if sales_profit_channel_internet is None:
-        sales_channel_internet = 0
-        profit_channel_internet = 0
-    else:
         sales_channel_internet = sales_profit_channel_internet["InternetSales"]
         profit_channel_internet = sales_profit_channel_internet["InternetProfit"]
+    else:
+        sales_channel_internet = 0
+        profit_channel_internet = 0
+
+    # if sales_profit_channel_internet is None or sales_profit_channel_internet.empty:
+    #     sales_channel_internet = 0
+    #     profit_channel_internet = 0
+
 
     if input_channel_resellers.value == True:
         sales_profit_channel_resellers = sqlcon.sql(f"""
         SELECT 
-            CAST(ROUND(SUM(SalesAmount), 0) AS DECIMAL(13, 2)) AS ResellerSales,
-            CAST(ROUND(SUM(SalesAmount - TotalProductCost), 0) AS DECIMAL(13, 2)) AS ResellerProfit
+            CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) AS ResellerSales,
+            CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) AS ResellerProfit
         FROM {table_sales_reseller}
         JOIN {table_date}
         ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
@@ -419,15 +420,15 @@ def _(
             --AND {product_subcategory_key} IS NOT NULL
         )
         """).execute()
-    else:
-        sales_profit_channel_resellers = None
-
-    if sales_profit_channel_resellers is None:
-        sales_channel_resellers = 0
-        profit_channel_resellers = 0
-    else:
         sales_channel_resellers = sales_profit_channel_resellers["ResellerSales"]
         profit_channel_resellers = sales_profit_channel_resellers["ResellerProfit"]
+    else:
+        sales_channel_resellers = 0
+        profit_channel_resellers = 0
+
+    # if sales_profit_channel_resellers is None or sales_profit_channel_resellers.empty:
+    #     sales_channel_resellers = 0
+    #     profit_channel_resellers = 0
 
     sales_channel_all = sales_channel_internet + sales_channel_resellers
     profit_channel_all = profit_channel_internet + profit_channel_resellers
@@ -437,7 +438,32 @@ def _(
         fstrd(sales_channel_all),
         fstrd(profit_channel_all),
     )
-    return profit_channel_all, sales_channel_all
+    return (
+        profit_channel_all,
+        sales_channel_all,
+        sales_channel_internet,
+        sales_channel_resellers,
+        sales_profit_channel_internet,
+    )
+
+
+@app.cell
+def _(sales_channel_resellers):
+    sales_channel_resellers
+    return
+
+
+@app.cell
+def _(sales_profit_channel_internet):
+    print(sales_profit_channel_internet)
+    print(type(sales_profit_channel_internet))
+    return
+
+
+@app.cell
+def _(sales_channel_internet):
+    sales_channel_internet
+    return
 
 
 @app.cell
