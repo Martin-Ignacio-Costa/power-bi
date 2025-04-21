@@ -482,10 +482,10 @@ def sales_profit(
         """)
         sales_channel_internet = sales_profit_channel_internet.filter(
             sales_profit_channel_internet["FiscalYear"] == current_fy
-        ).select("InternetSales").as_scalar()
+        ).select("InternetSales").as_scalar().execute()
         profit_channel_internet = sales_profit_channel_internet.filter(
             sales_profit_channel_internet["FiscalYear"] == current_fy
-        ).select("InternetProfit").as_scalar()
+        ).select("InternetProfit").as_scalar().execute()
     else:
         sales_channel_internet = 0
         profit_channel_internet = 0
@@ -514,16 +514,16 @@ def sales_profit(
         """)
         sales_channel_resellers = sales_profit_channel_resellers.filter(
            sales_profit_channel_resellers["FiscalYear"] == current_fy
-        ).select("ResellerSales").as_scalar()
+        ).select("ResellerSales").as_scalar().execute()
         profit_channel_resellers = sales_profit_channel_resellers.filter(
             sales_profit_channel_resellers["FiscalYear"] == current_fy
-        ).select("ResellerProfit").as_scalar()
+        ).select("ResellerProfit").as_scalar().execute()
     else:
         sales_channel_resellers = 0
         profit_channel_resellers = 0
 
-    sales_channel_all = sales_channel_internet + sales_channel_resellers
-    profit_channel_all = profit_channel_internet + profit_channel_resellers
+    sales_channel_all = Decimal(sales_channel_internet + sales_channel_resellers)
+    profit_channel_all = Decimal(profit_channel_internet + profit_channel_resellers)
 
     sales_millions = str(round(sales_channel_all / 1_000_000, 2))
     profit_millions = str(round(profit_channel_all / 1_000_000, 2))
@@ -537,15 +537,14 @@ def sales_profit(
         profit_channel_all,
         profit_millions,
         sales_channel_all,
-        sales_channel_internet,
         sales_millions,
         selected_products,
     )
 
 
 @app.cell
-def _(sales_channel_internet):
-    print(sales_channel_internet)
+def _(sales_channel_all):
+    print(sales_channel_all)
     return
 
 
