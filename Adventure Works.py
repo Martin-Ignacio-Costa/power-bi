@@ -495,6 +495,12 @@ def sales_profit_volume(
             .as_scalar()
             .execute()
         )
+        current_volume_channel_internet = (
+            channel_internet.filter(channel_internet["FiscalYear"] == current_fy)
+            .select("OrderVolume")
+            .as_scalar()
+            .execute()
+        )
         previous_sales_channel_internet = (
             channel_internet.filter(channel_internet["FiscalYear"] == previous_fy)
             .select("InternetSales")
@@ -504,12 +510,6 @@ def sales_profit_volume(
         previous_profit_channel_internet = (
             channel_internet.filter(channel_internet["FiscalYear"] == previous_fy)
             .select("InternetProfit")
-            .as_scalar()
-            .execute()
-        )
-        current_volume_channel_internet = (
-            channel_internet.filter(channel_internet["FiscalYear"] == current_fy)
-            .select("OrderVolume")
             .as_scalar()
             .execute()
         )
@@ -570,21 +570,25 @@ def sales_profit_volume(
             .as_scalar()
             .execute()
         )
-        previous_sales_channel_resellers = (
+        current_volume_channel_resellers = (
             channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
+            .select("OrderVolume")
+            .as_scalar()
+            .execute()
+        )
+        previous_sales_channel_resellers = (
+            channel_resellers.filter(
+                channel_resellers["FiscalYear"] == previous_fy
+            )
             .select("ResellerSales")
             .as_scalar()
             .execute()
         )
         previous_profit_channel_resellers = (
-            channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
+            channel_resellers.filter(
+                channel_resellers["FiscalYear"] == previous_fy
+            )
             .select("ResellerProfit")
-            .as_scalar()
-            .execute()
-        )
-        current_volume_channel_resellers = (
-            channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
-            .select("OrderVolume")
             .as_scalar()
             .execute()
         )
@@ -629,6 +633,10 @@ def sales_profit_volume(
         previous_volume_channel_internet + previous_volume_channel_resellers
     )
 
+    sales_yoy = str(round((current_sales_channel_all / previous_sales_channel_all) * 100 - 100, 2))
+    profit_yoy = str(round((current_profit_channel_all / previous_profit_channel_all) * 100 - 100, 2))
+    volume_yoy = str(round((current_volume_channel_all / previous_volume_channel_all) * 100 - 100, 2))
+
     sales_millions = str(round(current_sales_channel_all / 1_000_000, 2))
     profit_millions = str(round(current_profit_channel_all / 1_000_000, 2))
     current_volume_thousands = str(round(current_volume_channel_all / 1_000, 2))
@@ -644,7 +652,14 @@ def sales_profit_volume(
         current_volume_thousands,
         profit_millions,
         sales_millions,
+        sales_yoy,
     )
+
+
+@app.cell
+def _(sales_yoy):
+    sales_yoy
+    return
 
 
 @app.cell
