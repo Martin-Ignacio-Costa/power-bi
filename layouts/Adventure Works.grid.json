@@ -60,6 +60,18 @@
         "position": null
       },
       {
+        "position": null
+      },
+      {
+        "position": [
+          11,
+          16,
+          2,
+          2
+        ],
+        "side": "left"
+      },
+      {
         "position": [
           6,
           10,
@@ -77,9 +89,9 @@
       },
       {
         "position": [
-          8,
+          7,
           16,
-          1,
+          2,
           2
         ]
       },
@@ -87,7 +99,7 @@
         "position": [
           9,
           16,
-          1,
+          2,
           2
         ]
       },

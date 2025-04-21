@@ -101,7 +101,7 @@ def language_variations(input_language):
             input_product_label = "Products: "
             sales_total_title = "Sales $"
             profit_total_title = "Profit $"
-            fy_dates_title = "Period covered: "
+            fy_dates_title = "Sales between: "
 
         # Spanish labels
         case "1":
@@ -123,12 +123,13 @@ def language_variations(input_language):
             input_product_label = "Productos: "
             sales_total_title = "Ventas US$"
             profit_total_title = "Ganancias US$"
-            fy_dates_title = "Período comprendido: "
+            fy_dates_title = "Ventas entre: "
 
     # Language-independent variables
     product_category_key = "ProductCategoryKey"
     product_subcategory_key = "ProductSubcategoryKey"
     product_key = "ProductKey"
+    sales_order_number = "SalesOrderNumber"
     return (
         fy_dates_title,
         input_channel_internet_label,
@@ -146,6 +147,7 @@ def language_variations(input_language):
         product_subcategory_key,
         product_subcategory_name,
         profit_total_title,
+        sales_order_number,
         sales_total_title,
     )
 
@@ -380,105 +382,7 @@ def input_filters(
 
 
 @app.cell
-def sales_profit(
-    input_channel_internet,
-    input_channel_resellers,
-    input_fiscal_year,
-    input_product,
-    locale_decimal,
-    product_key,
-    product_name,
-    product_subcategory_key,
-    sqlcon,
-    table_date,
-    table_product,
-    table_sales_internet,
-    table_sales_reseller,
-):
-    selected_products = "', '".join(
-        product.replace("'", "''") for product in input_product.value
-    )
-
-    # Channel sales and profit
-
-    if input_channel_internet.value == True:
-        sales_profit_channel_internet = sqlcon.sql(f"""
-        SELECT 
-            CASE WHEN COUNT(*) = 0 THEN 0
-                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) 
-                END AS InternetSales,
-            CASE WHEN COUNT(*) = 0 THEN 0
-                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
-                END AS InternetProfit
-        FROM {table_sales_internet}
-        JOIN {table_date}
-        ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-        AND {table_sales_internet}.{product_key} IN (
-            SELECT {product_key}
-            FROM {table_product}
-            WHERE {product_name} IN ('{selected_products}')
-            --AND {product_subcategory_key} IS NOT NULL
-        )
-        """).execute()
-        sales_channel_internet = sales_profit_channel_internet["InternetSales"].iat[0]
-        profit_channel_internet = sales_profit_channel_internet["InternetProfit"].iat[0]
-    else:
-        sales_channel_internet = 0
-        profit_channel_internet = 0
-
-    # if sales_profit_channel_internet is None or sales_profit_channel_internet.empty:
-    #     sales_channel_internet = 0
-    #     profit_channel_internet = 0
-
-
-    if input_channel_resellers.value == True:
-        sales_profit_channel_resellers = sqlcon.sql(f"""
-        SELECT 
-            CASE WHEN COUNT(*) = 0 THEN 0
-                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) 
-                END AS ResellerSales,
-            CASE WHEN COUNT(*) = 0 THEN 0
-                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
-                END AS ResellerProfit
-        FROM {table_sales_reseller}
-        JOIN {table_date}
-        ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
-        AND {table_sales_reseller}.{product_key} IN (
-            SELECT {product_key}
-            FROM {table_product}
-            WHERE {product_name} IN ('{selected_products}')
-            --AND {product_subcategory_key} IS NOT NULL
-        )
-        """).execute()
-        sales_channel_resellers = sales_profit_channel_resellers["ResellerSales"].iat[0]
-        profit_channel_resellers = sales_profit_channel_resellers["ResellerProfit"].iat[0]
-    else:
-        sales_channel_resellers = 0
-        profit_channel_resellers = 0
-
-    sales_channel_all = sales_channel_internet + sales_channel_resellers
-    profit_channel_all = profit_channel_internet + profit_channel_resellers
-
-    sales_millions = str(round(sales_channel_all / 1_000_000, 2))
-    profit_millions = str(round(profit_channel_all / 1_000_000, 2))
-
-    # Format results with thousands and decimal separators
-    sales_channel_all, profit_channel_all = (
-        locale_decimal(sales_channel_all),
-        locale_decimal(profit_channel_all),
-    )
-    return (
-        profit_channel_all,
-        profit_millions,
-        sales_channel_all,
-        sales_millions,
-    )
-
-
-@app.cell
-def _(input_fiscal_year, locale_date, sqlcon, table_date):
+def fy_dates(input_fiscal_year, locale_date, sqlcon, table_date):
     # Fiscal year dates
     fy_min_dates = sqlcon.sql(f"""
     SELECT 
@@ -520,6 +424,188 @@ def _(input_fiscal_year, locale_date, sqlcon, table_date):
 
 
 @app.cell
+def sales_profit(
+    input_channel_internet,
+    input_channel_resellers,
+    input_fiscal_year,
+    input_product,
+    locale_decimal,
+    product_key,
+    product_name,
+    product_subcategory_key,
+    sqlcon,
+    table_date,
+    table_product,
+    table_sales_internet,
+    table_sales_reseller,
+):
+    selected_products = "', '".join(
+        product.replace("'", "''") for product in input_product.value
+    )
+
+    # Channel sales and profit
+
+    if input_channel_internet.value == True:
+        sales_profit_channel_internet = sqlcon.sql(f"""
+        SELECT 
+            CASE WHEN COUNT(*) = 0 THEN 0
+                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) 
+                END AS InternetSales,
+            CASE WHEN COUNT(*) = 0 THEN 0
+                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
+                END AS InternetProfit
+        FROM {table_sales_internet}
+        JOIN {table_date}
+        ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+        AND {table_sales_internet}.{product_key} IN (
+            SELECT {product_key}
+            FROM {table_product}
+            WHERE {product_name} IN ('{selected_products}')
+            --AND {product_subcategory_key} IS NOT NULL
+        )
+        """).execute()
+        sales_channel_internet = sales_profit_channel_internet[
+            "InternetSales"
+        ].iat[0]
+        profit_channel_internet = sales_profit_channel_internet[
+            "InternetProfit"
+        ].iat[0]
+    else:
+        sales_channel_internet = 0
+        profit_channel_internet = 0
+
+    if input_channel_resellers.value == True:
+        sales_profit_channel_resellers = sqlcon.sql(f"""
+        SELECT 
+            CASE WHEN COUNT(*) = 0 THEN 0
+                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) 
+                END AS ResellerSales,
+            CASE WHEN COUNT(*) = 0 THEN 0
+                ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
+                END AS ResellerProfit
+        FROM {table_sales_reseller}
+        JOIN {table_date}
+        ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+        AND {table_sales_reseller}.{product_key} IN (
+            SELECT {product_key}
+            FROM {table_product}
+            WHERE {product_name} IN ('{selected_products}')
+            --AND {product_subcategory_key} IS NOT NULL
+        )
+        """).execute()
+        sales_channel_resellers = sales_profit_channel_resellers[
+            "ResellerSales"
+        ].iat[0]
+        profit_channel_resellers = sales_profit_channel_resellers[
+            "ResellerProfit"
+        ].iat[0]
+    else:
+        sales_channel_resellers = 0
+        profit_channel_resellers = 0
+
+    sales_channel_all = sales_channel_internet + sales_channel_resellers
+    profit_channel_all = profit_channel_internet + profit_channel_resellers
+
+    sales_millions = str(round(sales_channel_all / 1_000_000, 2))
+    profit_millions = str(round(profit_channel_all / 1_000_000, 2))
+
+    # Format results with thousands and decimal separators
+    sales_channel_all, profit_channel_all = (
+        locale_decimal(sales_channel_all),
+        locale_decimal(profit_channel_all),
+    )
+    return (
+        profit_channel_all,
+        profit_millions,
+        sales_channel_all,
+        sales_millions,
+        selected_products,
+    )
+
+
+@app.cell
+def order_volume(
+    input_channel_internet,
+    input_channel_resellers,
+    input_fiscal_year,
+    product_key,
+    product_name,
+    product_subcategory_key,
+    sales_order_number,
+    selected_products,
+    sqlcon,
+    table_date,
+    table_product,
+    table_sales_internet,
+    table_sales_reseller,
+):
+    # Volume of orders
+    if input_channel_internet.value == True:
+        volume_channel_internet = sqlcon.sql(f"""
+        SELECT 
+            COUNT(DISTINCT {sales_order_number}) AS OrderVolume
+            --CASE WHEN COUNT(*) = 0 THEN 0
+                --ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
+                --END AS InternetProfit
+        FROM {table_sales_internet}
+        JOIN {table_date}
+        ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+        AND {table_sales_internet}.{product_key} IN (
+            SELECT {product_key}
+            FROM {table_product}
+            WHERE {product_name} IN ('{selected_products}')
+            --AND {product_subcategory_key} IS NOT NULL
+        )
+        """).execute()
+        volume_channel_internet = volume_channel_internet["OrderVolume"].iat[0]
+    else:
+        volume_channel_internet = 0
+
+    if input_channel_resellers.value == True:
+        volume_channel_resellers = sqlcon.sql(f"""
+        SELECT 
+            COUNT(DISTINCT {sales_order_number}) AS OrderVolume
+            --CASE WHEN COUNT(*) = 0 THEN 0
+                --ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
+                --END AS InternetProfit
+        FROM {table_sales_reseller}
+        JOIN {table_date}
+        ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear = {input_fiscal_year.value}
+        AND {table_sales_reseller}.{product_key} IN (
+            SELECT {product_key}
+            FROM {table_product}
+            WHERE {product_name} IN ('{selected_products}')
+            --AND {product_subcategory_key} IS NOT NULL
+        )
+        """).execute()
+        volume_channel_resellers = volume_channel_resellers["OrderVolume"].iat[0]
+    else:
+        volume_channel_resellers = 0
+
+
+    volume_channel_all = volume_channel_internet + volume_channel_resellers
+
+    volume_thousands = str(round(volume_channel_all / 1_000, 2))
+
+
+    # # Format results with thousands and decimal separators
+    # sales_channel_all, profit_channel_all = (
+    #     locale_decimal(sales_channel_all),
+    # )
+    return (volume_thousands,)
+
+
+@app.cell
+def _(volume_thousands):
+    mo.md(f"{volume_thousands}K")
+    return
+
+
+@app.cell
 def _(fy_dates_title, fy_end_date, fy_start_date):
     mo.md(f"{fy_dates_title} {fy_start_date} - {fy_end_date}")
     return
@@ -533,13 +619,13 @@ def _(sales_channel_all, sales_total_title):
 
 @app.cell
 def _(sales_millions):
-    mo.md(f'{sales_millions}M')
+    mo.md(f"{sales_millions}M")
     return
 
 
 @app.cell
 def _(profit_millions):
-    mo.md(f'{profit_millions}M')
+    mo.md(f"{profit_millions}M")
     return
 
 
