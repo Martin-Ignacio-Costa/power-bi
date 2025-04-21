@@ -519,8 +519,9 @@ def sales_profit(
             .as_scalar()
             .execute()
         )
-        if previous_sales_channel_internet and previous_profit_channel_internet is None:
+        if previous_sales_channel_internet is None:
             previous_sales_channel_internet = 0
+        if previous_profit_channel_internet is None:
             previous_profit_channel_internet = 0
     else:
         current_sales_channel_internet = 0
@@ -590,8 +591,9 @@ def sales_profit(
             .as_scalar()
             .execute()
         )
-        if previous_sales_channel_resellers and previous_profit_channel_resellers is None:
+        if previous_sales_channel_resellers is None:
             previous_sales_channel_resellers = 0
+        if previous_profit_channel_resellers is None:
             previous_profit_channel_resellers = 0
     else:
         current_sales_channel_resellers = 0
