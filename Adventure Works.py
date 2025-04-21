@@ -102,6 +102,9 @@ def language_variations(input_language):
             sales_total_title = "Sales $"
             profit_total_title = "Profit $"
             fy_dates_title = "Sales between: "
+            sales_millions_label = "Sales (in millions)"
+            profit_millions_label = "Profit (in millions)"
+            volume_thousands_label = "Volume (# of orders in thousands)"
 
         # Spanish labels
         case "1":
@@ -124,6 +127,9 @@ def language_variations(input_language):
             sales_total_title = "Ventas US$"
             profit_total_title = "Ganancias US$"
             fy_dates_title = "Ventas entre: "
+            sales_millions_label = "Ventas (en millones US$)"
+            profit_millions_label = "Ganancias (en millones US$)"
+            volume_thousands_label = "Volúmen (# de pedidos en miles)"
 
     # Language-independent variables
     product_category_key = "ProductCategoryKey"
@@ -146,9 +152,12 @@ def language_variations(input_language):
         product_name,
         product_subcategory_key,
         product_subcategory_name,
+        profit_millions_label,
         profit_total_title,
+        sales_millions_label,
         sales_order_number,
         sales_total_title,
+        volume_thousands_label,
     )
 
 
@@ -600,12 +609,6 @@ def order_volume(
 
 
 @app.cell
-def _(volume_thousands):
-    mo.md(f"{volume_thousands}K")
-    return
-
-
-@app.cell
 def _(fy_dates_title, fy_end_date, fy_start_date):
     mo.md(f"{fy_dates_title} {fy_start_date} - {fy_end_date}")
     return
@@ -618,14 +621,23 @@ def _(sales_channel_all, sales_total_title):
 
 
 @app.cell
-def _(sales_millions):
-    mo.md(f"{sales_millions}M")
+def _(sales_millions, sales_millions_label):
+    mo.md(f"""{sales_millions_label}
+    {sales_millions}M""")
     return
 
 
 @app.cell
-def _(profit_millions):
-    mo.md(f"{profit_millions}M")
+def _(profit_millions, profit_millions_label):
+    mo.md(f"""{profit_millions_label} 
+    {profit_millions}M""")
+    return
+
+
+@app.cell
+def _(volume_thousands, volume_thousands_label):
+    mo.md(f"""{volume_thousands_label}
+    {volume_thousands}K""")
     return
 
 
