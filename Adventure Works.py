@@ -99,8 +99,8 @@ def language_variations(input_language):
             input_product_category_label = "Categories: "
             input_product_subcategory_label = "Subcategories: "
             input_product_label = "Products: "
-            sales_total_title = "Sales $"
-            profit_total_title = "Profit $"
+            current_sales_total_title = "Sales $"
+            current_profit_total_title = "Profit $"
             fy_dates_title = "Sales between: "
             sales_millions_label = "Sales (in millions)"
             profit_millions_label = "Profit (in millions)"
@@ -124,8 +124,8 @@ def language_variations(input_language):
             input_product_category_label = "Categorías: "
             input_product_subcategory_label = "Subcategorías: "
             input_product_label = "Productos: "
-            sales_total_title = "Ventas US$"
-            profit_total_title = "Ganancias US$"
+            current_sales_total_title = "Ventas US$"
+            current_profit_total_title = "Ganancias US$"
             fy_dates_title = "Ventas entre: "
             sales_millions_label = "Ventas (en millones US$)"
             profit_millions_label = "Ganancias (en millones US$)"
@@ -137,6 +137,8 @@ def language_variations(input_language):
     product_key = "ProductKey"
     sales_order_number = "SalesOrderNumber"
     return (
+        current_profit_total_title,
+        current_sales_total_title,
         fy_dates_title,
         input_channel_internet_label,
         input_channel_resellers_label,
@@ -153,10 +155,8 @@ def language_variations(input_language):
         product_subcategory_key,
         product_subcategory_name,
         profit_millions_label,
-        profit_total_title,
         sales_millions_label,
         sales_order_number,
-        sales_total_title,
         volume_thousands_label,
     )
 
@@ -445,7 +445,6 @@ def sales_profit(
     previous_fy,
     product_key,
     product_name,
-    product_subcategory_key,
     sqlcon,
     table_date,
     table_product,
@@ -476,19 +475,46 @@ def sales_profit(
             SELECT {product_key}
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
-            --AND {product_subcategory_key} IS NOT NULL
         )
         GROUP BY FiscalYear
         """)
-        sales_channel_internet = sales_profit_channel_internet.filter(
-            sales_profit_channel_internet["FiscalYear"] == current_fy
-        ).select("InternetSales").as_scalar().execute()
-        profit_channel_internet = sales_profit_channel_internet.filter(
-            sales_profit_channel_internet["FiscalYear"] == current_fy
-        ).select("InternetProfit").as_scalar().execute()
+        current_sales_channel_internet = (
+            sales_profit_channel_internet.filter(
+                sales_profit_channel_internet["FiscalYear"] == current_fy
+            )
+            .select("InternetSales")
+            .as_scalar()
+            .execute()
+        )
+        current_profit_channel_internet = (
+            sales_profit_channel_internet.filter(
+                sales_profit_channel_internet["FiscalYear"] == current_fy
+            )
+            .select("InternetProfit")
+            .as_scalar()
+            .execute()
+        )
+        previous_sales_channel_internet = (
+            sales_profit_channel_internet.filter(
+                sales_profit_channel_internet["FiscalYear"] == previous_fy
+            )
+            .select("InternetSales")
+            .as_scalar()
+            .execute()
+        )
+        previous_profit_channel_internet = (
+            sales_profit_channel_internet.filter(
+                sales_profit_channel_internet["FiscalYear"] == previous_fy
+            )
+            .select("InternetProfit")
+            .as_scalar()
+            .execute()
+        )
     else:
-        sales_channel_internet = 0
-        profit_channel_internet = 0
+        current_sales_channel_internet = 0
+        current_profit_channel_internet = 0
+        previous_sales_channel_internet = 0
+        previous_profit_channel_internet = 0
 
     if input_channel_resellers.value == True:
         sales_profit_channel_resellers = sqlcon.sql(f"""
@@ -508,43 +534,80 @@ def sales_profit(
             SELECT {product_key}
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
-            --AND {product_subcategory_key} IS NOT NULL
         )
         GROUP BY FiscalYear
         """)
-        sales_channel_resellers = sales_profit_channel_resellers.filter(
-           sales_profit_channel_resellers["FiscalYear"] == current_fy
-        ).select("ResellerSales").as_scalar().execute()
-        profit_channel_resellers = sales_profit_channel_resellers.filter(
-            sales_profit_channel_resellers["FiscalYear"] == current_fy
-        ).select("ResellerProfit").as_scalar().execute()
+        current_sales_channel_resellers = (
+            sales_profit_channel_resellers.filter(
+                sales_profit_channel_resellers["FiscalYear"] == current_fy
+            )
+            .select("ResellerSales")
+            .as_scalar()
+            .execute()
+        )
+        current_profit_channel_resellers = (
+            sales_profit_channel_resellers.filter(
+                sales_profit_channel_resellers["FiscalYear"] == current_fy
+            )
+            .select("ResellerProfit")
+            .as_scalar()
+            .execute()
+        )
+        previous_sales_channel_resellers = (
+            sales_profit_channel_resellers.filter(
+                sales_profit_channel_resellers["FiscalYear"] == current_fy
+            )
+            .select("ResellerSales")
+            .as_scalar()
+            .execute()
+        )
+        previous_profit_channel_resellers = (
+            sales_profit_channel_resellers.filter(
+                sales_profit_channel_resellers["FiscalYear"] == current_fy
+            )
+            .select("ResellerProfit")
+            .as_scalar()
+            .execute()
+        )
     else:
-        sales_channel_resellers = 0
-        profit_channel_resellers = 0
+        current_sales_channel_resellers = 0
+        current_profit_channel_resellers = 0
+        previous_sales_channel_resellers = 0
+        previous_profit_channel_resellers = 0
 
-    sales_channel_all = Decimal(sales_channel_internet + sales_channel_resellers)
-    profit_channel_all = Decimal(profit_channel_internet + profit_channel_resellers)
+    current_sales_channel_all = Decimal(
+        current_sales_channel_internet + current_sales_channel_resellers
+    )
+    current_profit_channel_all = Decimal(
+        current_profit_channel_internet + current_profit_channel_resellers
+    )
+    previous_sales_channel_all = Decimal(
+        previous_sales_channel_internet + previous_sales_channel_resellers
+    )
+    previous_profit_channel_all = Decimal(
+        previous_profit_channel_internet + previous_profit_channel_resellers
+    )
 
-    sales_millions = str(round(sales_channel_all / 1_000_000, 2))
-    profit_millions = str(round(profit_channel_all / 1_000_000, 2))
+    sales_millions = str(round(current_sales_channel_all / 1_000_000, 2))
+    profit_millions = str(round(current_profit_channel_all / 1_000_000, 2))
 
     # Format results with thousands and decimal separators
-    sales_channel_all, profit_channel_all = (
-        locale_decimal(sales_channel_all),
-        locale_decimal(profit_channel_all),
+    current_sales_channel_all, current_profit_channel_all = (
+        locale_decimal(current_sales_channel_all),
+        locale_decimal(current_profit_channel_all),
     )
     return (
-        profit_channel_all,
+        current_profit_channel_all,
+        current_sales_channel_all,
         profit_millions,
-        sales_channel_all,
         sales_millions,
         selected_products,
     )
 
 
 @app.cell
-def _(sales_channel_all):
-    print(sales_channel_all)
+def _(current_sales_channel_all):
+    print(current_sales_channel_all)
     return
 
 
@@ -553,6 +616,7 @@ def order_volume(
     current_fy,
     input_channel_internet,
     input_channel_resellers,
+    previous_fy,
     product_key,
     product_name,
     product_subcategory_key,
@@ -568,16 +632,16 @@ def order_volume(
     if input_channel_internet.value == True:
         volume_channel_internet = sqlcon.sql(f"""
         SELECT 
+            FiscalYear
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
         FROM {table_sales_internet}
         JOIN {table_date}
         ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear = {current_fy}
+        WHERE {table_date}.FiscalYear IN ({current_fy}, {previous_fy})
         AND {table_sales_internet}.{product_key} IN (
             SELECT {product_key}
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
-            --AND {product_subcategory_key} IS NOT NULL
         )
         """).execute()
         volume_channel_internet = volume_channel_internet["OrderVolume"].iat[0]
@@ -701,8 +765,8 @@ def _(fy_dates_title, fy_end_date, fy_start_date):
 
 
 @app.cell
-def _(sales_channel_all, sales_total_title):
-    mo.callout(f"{sales_total_title} {sales_channel_all}")
+def _(current_sales_channel_all, current_sales_total_title):
+    mo.callout(f"{current_sales_total_title} {current_sales_channel_all}")
     return
 
 
@@ -728,8 +792,8 @@ def _(volume_thousands, volume_thousands_label):
 
 
 @app.cell
-def _(profit_channel_all, profit_total_title):
-    mo.callout(f"{profit_total_title} {profit_channel_all}")
+def _(current_profit_channel_all, current_profit_total_title):
+    mo.callout(f"{current_profit_total_title} {current_profit_channel_all}")
     return
 
 
