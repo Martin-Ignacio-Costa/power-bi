@@ -156,6 +156,7 @@ def language_variations(input_language):
         product_subcategory_name,
         profit_millions_label,
         sales_millions_label,
+        sales_order_number,
         volume_thousands_label,
     )
 
@@ -600,16 +601,32 @@ def sales_profit(
         current_sales_channel_all,
         profit_millions,
         sales_millions,
+        selected_products,
     )
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def order_volume(
+    current_fy,
+    input_channel_internet,
+    input_channel_resellers,
+    previous_fy,
+    product_key,
+    product_name,
+    product_subcategory_key,
+    sales_order_number,
+    selected_products,
+    sqlcon,
+    table_date,
+    table_product,
+    table_sales_internet,
+    table_sales_reseller,
+):
     # Volume of orders
     if input_channel_internet.value == True:
-        volume_channel_internet = sqlcon.sql(f\"\"\"
+        volume_channel_internet = sqlcon.sql(f"""
         SELECT 
-            FiscalYear
+            FiscalYear,
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
         FROM {table_sales_internet}
         JOIN {table_date}
@@ -621,25 +638,25 @@ app._unparsable_cell(
             WHERE {product_name} IN ('{selected_products}')
         )
         GROUP BY FiscalYear
-        \"\"\").execute()
-        current_volume_channel_internet = volume_channel_internet.filter(
-            volume_channel_internet[\"FiscalYear\"] == current_fy)
-        .select(\"OrderVolume\")
+        """)
+        current_volume_channel_internet = (volume_channel_internet.filter(
+            volume_channel_internet["FiscalYear"] == current_fy)
+        .select("OrderVolume")
         .as_scalar()
-        .execute()
-        previous_volume_channel_internet = volume_channel_internet.filter(
-            volume_channel_internet[\"FiscalYear\"] == previous_fy)
-        .select(\"OrderVolume\")
+        .execute())
+        previous_volume_channel_internet = (volume_channel_internet.filter(
+            volume_channel_internet["FiscalYear"] == previous_fy)
+        .select("OrderVolume")
         .as_scalar()
-        .execute()
+        .execute())
     else:
         current_volume_channel_internet = 0
         previous_volume_channel_internet = 0
 
     if input_channel_resellers.value == True:
-        volume_channel_resellers = sqlcon.sql(f\"\"\"
+        volume_channel_resellers = sqlcon.sql(f"""
         SELECT 
-            FiscalYear
+            FiscalYear,
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
         FROM {table_sales_reseller}
         JOIN {table_date}
@@ -652,17 +669,17 @@ app._unparsable_cell(
             --AND {product_subcategory_key} IS NOT NULL
         )
         GROUP BY FiscalYear
-        \"\"\")
-         current_volume_channel_resellers = volume_channel_resellers.filter(
-            volume_channel_resellers[\"FiscalYear\"] == current_fy)
-        .select(\"OrderVolume\")
+        """)
+        current_volume_channel_resellers = (volume_channel_resellers.filter(
+            volume_channel_resellers["FiscalYear"] == current_fy)
+        .select("OrderVolume")
         .as_scalar()
-        .execute()
-        volume_channel_resellers = volume_channel_resellers.filter(
-            volume_channel_resellers[\"FiscalYear\"] == previous_fy)
-        .select(\"OrderVolume\")
+        .execute())
+        previous_volume_channel_resellers = (volume_channel_resellers.filter(
+            volume_channel_resellers["FiscalYear"] == previous_fy)
+        .select("OrderVolume")
         .as_scalar()
-        .execute()
+        .execute())
     else:
         current_volume_channel_resellers = 0
         previous_volume_channel_resellers = 0
@@ -670,16 +687,14 @@ app._unparsable_cell(
     current_volume_channel_all = Decimal(current_volume_channel_internet + current_volume_channel_resellers)
     previous_volume_channel_all = Decimal(previous_volume_channel_internet + previous_volume_channel_resellers)
 
-    volume_thousands = str(round(volume_channel_all / 1_000, 2))
+    current_volume_thousands = str(round(current_volume_channel_all / 1_000, 2))
 
 
     # # Format results with thousands and decimal separators
     # sales_channel_all, profit_channel_all = (
     #     locale_decimal(sales_channel_all),
     # )
-    """,
-    name="order_volume"
-)
+    return (current_volume_thousands,)
 
 
 @app.cell
@@ -787,9 +802,9 @@ def _(profit_millions, profit_millions_label):
 
 
 @app.cell
-def _(volume_thousands, volume_thousands_label):
+def _(current_volume_thousands, volume_thousands_label):
     mo.md(f"""{volume_thousands_label}
-    {volume_thousands}K""")
+    {current_volume_thousands}K""")
     return
 
 
