@@ -156,7 +156,6 @@ def language_variations(input_language):
         product_subcategory_name,
         profit_millions_label,
         sales_millions_label,
-        sales_order_number,
         volume_thousands_label,
     )
 
@@ -601,36 +600,14 @@ def sales_profit(
         current_sales_channel_all,
         profit_millions,
         sales_millions,
-        selected_products,
     )
 
 
-@app.cell
-def _(current_sales_channel_all):
-    print(current_sales_channel_all)
-    return
-
-
-@app.cell
-def order_volume(
-    current_fy,
-    input_channel_internet,
-    input_channel_resellers,
-    previous_fy,
-    product_key,
-    product_name,
-    product_subcategory_key,
-    sales_order_number,
-    selected_products,
-    sqlcon,
-    table_date,
-    table_product,
-    table_sales_internet,
-    table_sales_reseller,
-):
+app._unparsable_cell(
+    r"""
     # Volume of orders
     if input_channel_internet.value == True:
-        volume_channel_internet = sqlcon.sql(f"""
+        volume_channel_internet = sqlcon.sql(f\"\"\"
         SELECT 
             FiscalYear
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
@@ -643,32 +620,55 @@ def order_volume(
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
         )
-        """).execute()
-        volume_channel_internet = volume_channel_internet["OrderVolume"].iat[0]
+        GROUP BY FiscalYear
+        \"\"\").execute()
+        current_volume_channel_internet = volume_channel_internet.filter(
+            volume_channel_internet[\"FiscalYear\"] == current_fy)
+        .select(\"OrderVolume\")
+        .as_scalar()
+        .execute()
+        previous_volume_channel_internet = volume_channel_internet.filter(
+            volume_channel_internet[\"FiscalYear\"] == previous_fy)
+        .select(\"OrderVolume\")
+        .as_scalar()
+        .execute()
     else:
-        volume_channel_internet = 0
+        current_volume_channel_internet = 0
+        previous_volume_channel_internet = 0
 
     if input_channel_resellers.value == True:
-        volume_channel_resellers = sqlcon.sql(f"""
+        volume_channel_resellers = sqlcon.sql(f\"\"\"
         SELECT 
+            FiscalYear
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
         FROM {table_sales_reseller}
         JOIN {table_date}
         ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear = {current_fy}
+        WHERE {table_date}.FiscalYear IN ({current_fy}, {previous_fy})
         AND {table_sales_reseller}.{product_key} IN (
             SELECT {product_key}
             FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
             --AND {product_subcategory_key} IS NOT NULL
         )
-        """).execute()
-        volume_channel_resellers = volume_channel_resellers["OrderVolume"].iat[0]
+        GROUP BY FiscalYear
+        \"\"\")
+         current_volume_channel_resellers = volume_channel_resellers.filter(
+            volume_channel_resellers[\"FiscalYear\"] == current_fy)
+        .select(\"OrderVolume\")
+        .as_scalar()
+        .execute()
+        volume_channel_resellers = volume_channel_resellers.filter(
+            volume_channel_resellers[\"FiscalYear\"] == previous_fy)
+        .select(\"OrderVolume\")
+        .as_scalar()
+        .execute()
     else:
-        volume_channel_resellers = 0
+        current_volume_channel_resellers = 0
+        previous_volume_channel_resellers = 0
 
-
-    volume_channel_all = volume_channel_internet + volume_channel_resellers
+    current_volume_channel_all = Decimal(current_volume_channel_internet + current_volume_channel_resellers)
+    previous_volume_channel_all = Decimal(previous_volume_channel_internet + previous_volume_channel_resellers)
 
     volume_thousands = str(round(volume_channel_all / 1_000, 2))
 
@@ -677,7 +677,9 @@ def order_volume(
     # sales_channel_all, profit_channel_all = (
     #     locale_decimal(sales_channel_all),
     # )
-    return (volume_thousands,)
+    """,
+    name="order_volume"
+)
 
 
 @app.cell
