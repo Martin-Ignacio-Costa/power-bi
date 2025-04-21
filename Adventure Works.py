@@ -470,7 +470,16 @@ def sales_profit(
         FROM {table_sales_internet}
         JOIN {table_date}
         ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear IN ({current_fy}, {previous_fy})
+        WHERE {table_date}.FiscalYear IN (
+            {current_fy},
+            CASE WHEN EXISTS (
+                SELECT 1
+                FROM {table_date}
+                WHERE {table_date}.FiscalYear = {previous_fy}
+            ) THEN {previous_fy} 
+            ELSE NULL
+            END
+        )
         AND {table_sales_internet}.{product_key} IN (
             SELECT {product_key}
             FROM {table_product}
@@ -510,6 +519,9 @@ def sales_profit(
             .as_scalar()
             .execute()
         )
+        if previous_sales_channel_internet and previous_profit_channel_internet is None:
+            previous_sales_channel_internet = 0
+            previous_profit_channel_internet = 0
     else:
         current_sales_channel_internet = 0
         current_profit_channel_internet = 0
@@ -529,7 +541,16 @@ def sales_profit(
         FROM {table_sales_reseller}
         JOIN {table_date}
         ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear IN ({current_fy}, {previous_fy})
+        WHERE {table_date}.FiscalYear IN (
+            {current_fy}, 
+            CASE WHEN EXISTS (
+                SELECT 1
+                FROM {table_date}
+                WHERE {table_date}.FiscalYear = {previous_fy}
+                ) THEN {previous_fy}
+                ELSE NULL
+                END
+            )
         AND {table_sales_reseller}.{product_key} IN (
             SELECT {product_key}
             FROM {table_product}
@@ -569,6 +590,9 @@ def sales_profit(
             .as_scalar()
             .execute()
         )
+        if previous_sales_channel_resellers and previous_profit_channel_resellers is None:
+            previous_sales_channel_resellers = 0
+            previous_profit_channel_resellers = 0
     else:
         current_sales_channel_resellers = 0
         current_profit_channel_resellers = 0
@@ -789,21 +813,21 @@ def _(current_sales_channel_all, current_sales_total_title):
 
 @app.cell
 def _(sales_millions, sales_millions_label):
-    mo.md(f"""{sales_millions_label}
+    mo.md(f"""{sales_millions_label}\n
     {sales_millions}M""")
     return
 
 
 @app.cell
 def _(profit_millions, profit_millions_label):
-    mo.md(f"""{profit_millions_label} 
+    mo.md(f"""{profit_millions_label}\n
     {profit_millions}M""")
     return
 
 
 @app.cell
 def _(current_volume_thousands, volume_thousands_label):
-    mo.md(f"""{volume_thousands_label}
+    mo.md(f"""{volume_thousands_label}\n
     {current_volume_thousands}K""")
     return
 
