@@ -661,14 +661,7 @@ def sales_profit_volume(
         current_volume_thousands,
         profit_millions,
         sales_millions,
-        sales_yoy,
     )
-
-
-@app.cell
-def _(sales_yoy):
-    sales_yoy
-    return
 
 
 @app.cell

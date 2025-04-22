@@ -9,6 +9,8 @@ dependencies = [
     "duckdb>=1.2.2",
     "ibis-framework[mssql]>=10.4.0",
     "marimo[lsp]>=0.13.0",
+    "matplotlib>=3.10.1",
+    "seaborn>=0.13.2",
 ]
 [tool.marimo.experimental]
 lsp = true
