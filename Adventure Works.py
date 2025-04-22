@@ -633,9 +633,18 @@ def sales_profit_volume(
         previous_volume_channel_internet + previous_volume_channel_resellers
     )
 
-    sales_yoy = str(round((current_sales_channel_all / previous_sales_channel_all) * 100 - 100, 2))
-    profit_yoy = str(round((current_profit_channel_all / previous_profit_channel_all) * 100 - 100, 2))
-    volume_yoy = str(round((current_volume_channel_all / previous_volume_channel_all) * 100 - 100, 2))
+    if previous_sales_channel_all == 0:
+        sales_yoy = "N/A"
+    else:
+        sales_yoy = str(round((current_sales_channel_all / previous_sales_channel_all) * 100 - 100, 2))
+    if previous_profit_channel_all == 0:
+        profit_yoy = "N/A"
+    else:
+        profit_yoy = str(round((current_profit_channel_all / previous_profit_channel_all) * 100 - 100, 2))
+    if previous_volume_channel_all == 0:
+        volume_yoy = "N/A"
+    else:
+        volume_yoy = str(round((current_volume_channel_all / previous_volume_channel_all) * 100 - 100, 2))
 
     sales_millions = str(round(current_sales_channel_all / 1_000_000, 2))
     profit_millions = str(round(current_profit_channel_all / 1_000_000, 2))
