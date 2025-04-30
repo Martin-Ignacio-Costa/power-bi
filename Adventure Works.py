@@ -54,22 +54,51 @@ def functions(input_language):
 
 
 @app.cell
-def db_settings():
+def _():
+    input_data_source = mo.ui.radio(
+        options={
+            "CSV files": "0",
+            "SQL Server database": "1",
+        },
+        value="CSV files",
+        label="Data source: ",
+    )
+    return (input_data_source,)
+
+
+@app.cell
+def _(input_data_source):
+    input_data_source
+    return
+
+
+@app.cell
+def db_settings(input_data_source):
     # Settings for database connections
 
     con = ibis.duckdb.connect()
     ibis.set_backend(con)
     ibis.options.interactive = True
 
-    sqlcon = ibis.mssql.connect(
-        user=os.environ["SQLSERVER_USER"],
-        password=os.environ["SQLSERVER_PASS"],
-        host=os.environ["SQLSERVER_HOST"],
-        database=os.environ["SQLSERVER_DB"],
-        driver="SQL Server",
-        port=os.environ["SQLSERVER_PORT"],
-    )
-    return (sqlcon,)
+    if input_data_source.value == "0":
+        table_date_csv = con.read_csv(r"csv\Date.csv")
+
+    elif input_data_source.value == "1":
+        sqlcon = ibis.mssql.connect(
+            user=os.environ["SQLSERVER_USER"],
+            password=os.environ["SQLSERVER_PASS"],
+            host=os.environ["SQLSERVER_HOST"],
+            database=os.environ["SQLSERVER_DB"],
+            driver="SQL Server",
+            port=os.environ["SQLSERVER_PORT"],
+        )
+    return sqlcon, table_date_csv
+
+
+@app.cell
+def _(table_date_csv):
+    mo.ui.table(table_date_csv)
+    return
 
 
 @app.cell
@@ -644,15 +673,33 @@ def sales_profit_volume(
     if previous_sales_channel_all == 0:
         sales_yoy = "N/A"
     else:
-        sales_yoy = str(round((current_sales_channel_all / previous_sales_channel_all) * 100 - 100, 2))
+        sales_yoy = str(
+            round(
+                (current_sales_channel_all / previous_sales_channel_all) * 100
+                - 100,
+                2,
+            )
+        )
     if previous_profit_channel_all == 0:
         profit_yoy = "N/A"
     else:
-        profit_yoy = str(round((current_profit_channel_all / previous_profit_channel_all) * 100 - 100, 2))
+        profit_yoy = str(
+            round(
+                (current_profit_channel_all / previous_profit_channel_all) * 100
+                - 100,
+                2,
+            )
+        )
     if previous_volume_channel_all == 0:
         volume_yoy = "N/A"
     else:
-        volume_yoy = str(round((current_volume_channel_all / previous_volume_channel_all) * 100 - 100, 2))
+        volume_yoy = str(
+            round(
+                (current_volume_channel_all / previous_volume_channel_all) * 100
+                - 100,
+                2,
+            )
+        )
 
     sales_millions = str(round(current_sales_channel_all / 1_000_000, 2))
     profit_millions = str(round(current_profit_channel_all / 1_000_000, 2))
