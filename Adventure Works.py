@@ -1,8 +1,16 @@
-
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#     "altair==5.5.0",
+#     "ibis-framework[duckdb]==10.5.0",
+#     "ibis-framework[mssql]==10.5.0",
+#     "marimo",
+# ]
+# ///
 
 import marimo
 
-__generated_with = "0.13.0"
+__generated_with = "0.13.3"
 app = marimo.App(
     width="medium",
     app_title="Adventure Works Sales",
@@ -666,7 +674,7 @@ def sales_profit_volume(
 
 @app.cell
 def _(fy_dates_title, fy_end_date, fy_start_date):
-    mo.md(f"{fy_dates_title} {fy_start_date} - {fy_end_date}")
+    mo.md(f"""{fy_dates_title} {fy_start_date} - {fy_end_date}""")
     return
 
 
@@ -678,22 +686,34 @@ def _(current_sales_channel_all, current_sales_total_title):
 
 @app.cell
 def _(sales_millions, sales_millions_label):
-    mo.md(f"""{sales_millions_label}\n
-    {sales_millions}M""")
+    mo.md(
+        f"""
+        {sales_millions_label}\n
+        {sales_millions}M
+        """
+    )
     return
 
 
 @app.cell
 def _(profit_millions, profit_millions_label):
-    mo.md(f"""{profit_millions_label}\n
-    {profit_millions}M""")
+    mo.md(
+        f"""
+        {profit_millions_label}\n
+        {profit_millions}M
+        """
+    )
     return
 
 
 @app.cell
 def _(current_volume_thousands, volume_thousands_label):
-    mo.md(f"""{volume_thousands_label}\n
-    {current_volume_thousands}K""")
+    mo.md(
+        f"""
+        {volume_thousands_label}\n
+        {current_volume_thousands}K
+        """
+    )
     return
 
 
