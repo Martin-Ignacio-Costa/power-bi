@@ -31,26 +31,28 @@ with app.setup:
     import locale
 
 
-@app.cell
-def functions(input_language):
+app._unparsable_cell(
+    r"""
     def locale_decimal(value):
-        """
-        Transforms a numeric value into a string formatted as a decimal using the corresponding regional thousands and decimals separators
-        """
-        if hasattr(value, "iloc"):
+        \"\"\"
+        Transforms a numeric value into a \"VARCHAR\" formatted as a decimal using the corresponding regional thousands and decimals separators
+        \"\"\"
+        if hasattr(value, \"iloc\"):
             value = value.iloc[0]
-        return locale.format_string("%.2f", value, grouping=True)
+        return locale.format_\"VARCHAR\"(\"%.2f\", value, grouping=True)
 
 
     def locale_date(date):
-        """
-        Converts a date into a string formatted for the regional configuration
-        """
-        if input_language.value == "0":
-            return date.strftime("%m/%d/%Y")
-        elif input_language.value == "1":
-            return date.strftime("%d/%m/%Y")
-    return locale_date, locale_decimal
+        \"\"\"
+        Converts a date into a \"VARCHAR\" formatted for the regional configuration
+        \"\"\"
+        if input_language.value == \"0\":
+            return date.strftime(\"%m/%d/%Y\")
+        elif input_language.value == \"1\":
+            return date.strftime(\"%d/%m/%Y\")
+    """,
+    name="functions"
+)
 
 
 @app.cell
@@ -188,37 +190,120 @@ def db_settings(input_data_source):
 
     csv_path = os.environ["CSV_PATH"]
     date_csv = rf"{csv_path}\Date.csv"
+    product_category_csv = rf"{csv_path}\ProductCategory.csv"
+    product_subcategory_csv = rf"{csv_path}\ProductSubcategory.csv"
+    product_csv = rf"{csv_path}\Product.csv"
 
     if input_data_source.value == "0":
         csv_table_date = con.read_csv(
             date_csv,
-            auto_detect=True,
+            auto_detect=False,
             header=True,
             dateformat="%Y-%m-%d",
             decimal_separator=",",
             delim=";",
             encoding="utf-8",
-            # columns={
-            #     "DateKey": dt.Int32,
-            #     "FullDateAlternateKey": dt.String,
-            #     "DayNumberOfWeek": dt.Int8,
-            #     "EnglishDayNameOfWeek": dt.String,
-            #     "SpanishDayNameOfWeek": dt.String,
-            #     "FrenchDayNameOfWeek": dt.String,
-            #     "DayNumberOfMonth": dt.Int8,
-            #     "DayNumberOfYear": dt.Int16,
-            #     "WeekNumberOfYear": dt.Int8,
-            #     "EnglishMonthName": dt.String,
-            #     "SpanishMonthName": dt.String,
-            #     "FrenchMonthName": dt.String,
-            #     "MonthNumberOfYear": dt.Int8,
-            #     "CalendarQuarter": dt.Int8,
-            #     "CalendarYear": dt.Int16,
-            #     "CalendarSemester": dt.Int8,
-            #     "FiscalQuarter": dt.Int8,
-            #     "FiscalYear": dt.Int32,
-            #     "FiscalSemester": dt.Int8,
-            # },
+            columns={
+                "DateKey": "INT32",
+                "FullDateAlternateKey": "DATE",
+                "DayNumberOfWeek": "INT8",
+                "EnglishDayNameOfWeek": "VARCHAR",
+                "SpanishDayNameOfWeek": "VARCHAR",
+                "FrenchDayNameOfWeek": "VARCHAR",
+                "DayNumberOfMonth": "INT8",
+                "DayNumberOfYear": "INT16",
+                "WeekNumberOfYear": "INT8",
+                "EnglishMonthName": "VARCHAR",
+                "SpanishMonthName": "VARCHAR",
+                "FrenchMonthName": "VARCHAR",
+                "MonthNumberOfYear": "INT8",
+                "CalendarQuarter": "INT8",
+                "CalendarYear": "INT16",
+                "CalendarSemester": "INT8",
+                "FiscalQuarter": "INT8",
+                "FiscalYear": "INT32",
+                "FiscalSemester": "INT8",
+            },
+        )
+
+        csv_table_product_category = con.read_csv(
+            product_category_csv,
+            auto_detect=False,
+            header=True,
+            decimal_separator=",",
+            delim=";",
+            encoding="utf-8",
+            columns={
+                "ProductCategoryKey": "INT8",
+                "ProductCategoryAlternateKey": "INT8",
+                "EnglishProductCategoryName": "VARCHAR",
+                "SpanishProductCategoryName": "VARCHAR",
+                "FrenchProductCategoryName": "VARCHAR",
+            },
+        )
+
+        csv_table_product_subcategory = con.read_csv(
+            product_subcategory_csv,
+            auto_detect=False,
+            header=True,
+            decimal_separator=",",
+            delim=";",
+            encoding="utf-8",
+            columns={
+                "ProductSubcategoryKey": "INT8",
+                "ProductSubcategoryAlternateKey": "INT8",
+                "EnglisProductSubcategoryName": "VARCHAR",
+                "SpanishProductSubcategoryName": "VARCHAR",
+                "FrenchProductSubcategoryName": "VARCHAR",
+                "ProductCategoryKey": "INT8",
+            },
+        )
+
+        csv_table_product = con.read_csv(
+            product_csv,
+            auto_detect=True,
+            header=True,
+            decimal_separator=",",
+            delim=";",
+            encoding="utf-8",
+            columns={
+                "ProductKey": "INT",
+                "ProductAlternateKey": "VARCHAR",
+                "ProductSubcategoryKey": "INT",
+                "WeightUnitMeasureCode": "VARCHAR",
+                "SizeUnitMeasureCode": "VARCHAR",
+                "EnglishProductName": "VARCHAR",
+                "SpanishProductName": "VARCHAR",
+                "FrenchProductName": "VARCHAR",
+                "StandardCost": "VARCHAR",
+                "FinishedGoodsFlag": "INT",
+                "Color": "VARCHAR",
+                "SafetyStockLevel": "INT",
+                "ReorderPoint": "INT",
+                "ListPrice": "VARCHAR",
+                "Size": "VARCHAR",
+                "SizeRange": "VARCHAR",
+                "Weight": "VARCHAR",
+                "DaysToManufacture": "INT",
+                "ProductLine": "VARCHAR",
+                "DealerPrice": "VARCHAR",
+                "Class": "VARCHAR",
+                "Style": "VARCHAR",
+                "ModelName": "VARCHAR",
+                "LargePhoto": "VARCHAR",
+                "EnglishDescription": "VARCHAR",
+                "FrenchDescription": "VARCHAR",
+                "ChineseDescription": "VARCHAR",
+                "ArabicDescription": "VARCHAR",
+                "HebrewDescription": "VARCHAR",
+                "ThaiDescription": "VARCHAR",
+                "GermanDescription": "VARCHAR",
+                "JapaneseDescription": "VARCHAR",
+                "TurkishDescription": "VARCHAR",
+                "StartDate": "DATE",
+                "EndDate": "VARCHAR",
+                "Status": "VARCHAR",
+            }
         )
 
     elif input_data_source.value == "1":
@@ -230,12 +315,18 @@ def db_settings(input_data_source):
             driver="SQL Server",
             port=os.environ["SQLSERVER_PORT"],
         )
-    return csv_table_date, sqlcon
+    return csv_table_product, sqlcon
 
 
 @app.cell
-def _(csv_table_date):
-    mo.ui.table(csv_table_date)
+def _(csv_table_product):
+    csv_table_product.schema()
+    return
+
+
+@app.cell
+def _(csv_table_product):
+    mo.ui.table(csv_table_product)
     return
 
 
