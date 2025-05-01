@@ -54,54 +54,6 @@ def functions(input_language):
 
 
 @app.cell
-def _():
-    input_data_source = mo.ui.radio(
-        options={
-            "CSV files": "0",
-            "SQL Server database": "1",
-        },
-        value="CSV files",
-        label="Data source: ",
-    )
-    return (input_data_source,)
-
-
-@app.cell
-def _(input_data_source):
-    input_data_source
-    return
-
-
-@app.cell
-def db_settings(input_data_source):
-    # Settings for database connections
-
-    con = ibis.duckdb.connect()
-    ibis.set_backend(con)
-    ibis.options.interactive = True
-
-    if input_data_source.value == "0":
-        table_date_csv = con.read_csv(r"csv\Date.csv")
-
-    elif input_data_source.value == "1":
-        sqlcon = ibis.mssql.connect(
-            user=os.environ["SQLSERVER_USER"],
-            password=os.environ["SQLSERVER_PASS"],
-            host=os.environ["SQLSERVER_HOST"],
-            database=os.environ["SQLSERVER_DB"],
-            driver="SQL Server",
-            port=os.environ["SQLSERVER_PORT"],
-        )
-    return sqlcon, table_date_csv
-
-
-@app.cell
-def _(table_date_csv):
-    mo.ui.table(table_date_csv)
-    return
-
-
-@app.cell
 def language_settings():
     # Language settings
     input_language = mo.ui.dropdown(
@@ -116,6 +68,12 @@ def language_settings():
 
 
 @app.cell
+def _(input_language):
+    input_language
+    return
+
+
+@app.cell
 def language_variations(input_language):
     # Label variations for different languages
 
@@ -123,6 +81,7 @@ def language_variations(input_language):
         # English labels
         case "0":
             locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
+            input_data_source_label = "Data source: "
             input_fiscal_year_label = "<strong>Fiscal Year: </strong>"
             input_sales_channel_title = (
                 "<strong>Filter sales channels by: </strong>"
@@ -148,6 +107,7 @@ def language_variations(input_language):
             locale.setlocale(locale.LC_ALL, "es_AR.UTF-8")
             thousands_separator = "."
             decimal_separator = ","
+            input_data_source_label = "Orígen datos: "
             input_fiscal_year_label = "<strong>Año Fiscal: </strong>"
             input_sales_channel_title = (
                 "<strong>Filtrar canales de venta por: </strong>"
@@ -179,6 +139,7 @@ def language_variations(input_language):
         fy_dates_title,
         input_channel_internet_label,
         input_channel_resellers_label,
+        input_data_source_label,
         input_fiscal_year_label,
         input_product_category_label,
         input_product_label,
@@ -199,50 +160,134 @@ def language_variations(input_language):
 
 
 @app.cell
+def _(input_data_source_label):
+    input_data_source = mo.ui.radio(
+        options={
+            "CSV": "0",
+            "SQL": "1",
+        },
+        value="CSV",
+        label=input_data_source_label,
+    )
+    return (input_data_source,)
+
+
+@app.cell
+def _(input_data_source):
+    input_data_source
+    return
+
+
+@app.cell
+def db_settings(input_data_source):
+    # Settings for database and csv connections
+
+    con = ibis.duckdb.connect()
+    ibis.set_backend(con)
+    ibis.options.interactive = True
+
+    csv_path = os.environ["CSV_PATH"]
+    date_csv = rf"{csv_path}\Date.csv"
+
+    if input_data_source.value == "0":
+        csv_table_date = con.read_csv(
+            date_csv,
+            auto_detect=True,
+            header=True,
+            dateformat="%Y-%m-%d",
+            decimal_separator=",",
+            delim=";",
+            encoding="utf-8",
+            # columns={
+            #     "DateKey": dt.Int32,
+            #     "FullDateAlternateKey": dt.String,
+            #     "DayNumberOfWeek": dt.Int8,
+            #     "EnglishDayNameOfWeek": dt.String,
+            #     "SpanishDayNameOfWeek": dt.String,
+            #     "FrenchDayNameOfWeek": dt.String,
+            #     "DayNumberOfMonth": dt.Int8,
+            #     "DayNumberOfYear": dt.Int16,
+            #     "WeekNumberOfYear": dt.Int8,
+            #     "EnglishMonthName": dt.String,
+            #     "SpanishMonthName": dt.String,
+            #     "FrenchMonthName": dt.String,
+            #     "MonthNumberOfYear": dt.Int8,
+            #     "CalendarQuarter": dt.Int8,
+            #     "CalendarYear": dt.Int16,
+            #     "CalendarSemester": dt.Int8,
+            #     "FiscalQuarter": dt.Int8,
+            #     "FiscalYear": dt.Int32,
+            #     "FiscalSemester": dt.Int8,
+            # },
+        )
+
+    elif input_data_source.value == "1":
+        sqlcon = ibis.mssql.connect(
+            user=os.environ["SQLSERVER_USER"],
+            password=os.environ["SQLSERVER_PASS"],
+            host=os.environ["SQLSERVER_HOST"],
+            database=os.environ["SQLSERVER_DB"],
+            driver="SQL Server",
+            port=os.environ["SQLSERVER_PORT"],
+        )
+    return csv_table_date, sqlcon
+
+
+@app.cell
+def _(csv_table_date):
+    mo.ui.table(csv_table_date)
+    return
+
+
+@app.cell
 def db_tables():
     # List of SQL Server tables for AdventureWorksDW2020 DB
 
     # Dimension tables
-    table_date = "DimDate"
-    table_product_category = "DimProductCategory"
-    table_product_subcategory = "DimProductSubcategory"
-    table_product = "DimProduct"
+    sql_table_date = "DimDate"
+    sql_sql_table_product_category = "DimProductCategory"
+    sql_sql_table_product_subcategory = "DimProductSubcategory"
+    sql_table_product = "DimProduct"
 
     # Fact tables
-    table_sales_reseller = "FactResellerSales"
-    table_sales_internet = "FactInternetSales"
+    sql_table_sales_reseller = "FactResellerSales"
+    sql_table_sales_internet = "FactInternetSales"
     return (
-        table_date,
-        table_product,
-        table_product_category,
-        table_product_subcategory,
-        table_sales_internet,
-        table_sales_reseller,
+        sql_sql_table_product_category,
+        sql_sql_table_product_subcategory,
+        sql_table_date,
+        sql_table_product,
+        sql_table_sales_internet,
+        sql_table_sales_reseller,
     )
 
 
 @app.cell
 def quick_queries(
+    sql_sql_table_product_category,
+    sql_sql_table_product_subcategory,
+    sql_table_date,
+    sql_table_product,
+    sql_table_sales_internet,
+    sql_table_sales_reseller,
     sqlcon,
-    table_date,
-    table_product,
-    table_product_category,
-    table_product_subcategory,
-    table_sales_internet,
-    table_sales_reseller,
 ):
     # Quick queries for data exploration
 
-    qq_table_date = sqlcon.sql(f"SELECT * FROM {table_date}")
-    qq_table_product_category = sqlcon.sql(
-        f"SELECT * FROM {table_product_category}"
+    qq_sql_table_date = sqlcon.sql(f"SELECT * FROM {sql_table_date}")
+    qq_sql_sql_table_product_category = sqlcon.sql(
+        f"SELECT * FROM {sql_sql_table_product_category}"
     )
-    qq_table_product_subcategory = sqlcon.sql(
-        f"SELECT * FROM {table_product_subcategory}"
+    qq_sql_sql_table_product_subcategory = sqlcon.sql(
+        f"SELECT * FROM {sql_sql_table_product_subcategory}"
     )
-    qq_table_product = sqlcon.sql(f"SELECT * FROM {table_product}")
-    qq_table_sales_reseller = sqlcon.sql(f"SELECT * FROM {table_sales_reseller}")
-    qq_table_sales_internet = sqlcon.sql(f"SELECT * FROM {table_sales_internet}")
+    qq_sql_table_product = sqlcon.sql(f"SELECT * FROM {sql_table_product}")
+    qq_sql_table_sales_reseller = sqlcon.sql(
+        f"SELECT * FROM {sql_table_sales_reseller}"
+    )
+    qq_sql_table_sales_internet = sqlcon.sql(
+        f"SELECT * FROM {sql_table_sales_internet}"
+    )
     return
 
 
@@ -252,20 +297,20 @@ def relationships():
 
     # category_subcategory_product = sqlcon.sql(f"""
     # SELECT
-    # {table_product_category}.ProductCategoryKey,
-    # {table_product_category}.{product_category_name},
-    # {table_product_subcategory}.ProductSubcategoryKey,
-    # {table_product_subcategory}.{product_subcategory_name},
-    # {table_product}.ProductKey,
-    # {table_product}.{product_name}
-    # FROM {table_product_category}
-    # JOIN {table_product_subcategory}
-    #     ON {table_product_category}.ProductCategoryKey = {table_product_subcategory}.ProductCategoryKey
-    # JOIN {table_product}
-    #     ON {table_product_subcategory}.ProductSubcategoryKey = {table_product}.ProductSubcategoryKey
-    # ORDER BY {table_product_category}.{product_category_name},
-    # {table_product_subcategory}.{product_subcategory_name},
-    # {table_product}.{product_name}
+    # {sql_sql_table_product_category}.ProductCategoryKey,
+    # {sql_sql_table_product_category}.{product_category_name},
+    # {sql_sql_table_product_subcategory}.ProductSubcategoryKey,
+    # {sql_sql_table_product_subcategory}.{product_subcategory_name},
+    # {sql_table_product}.ProductKey,
+    # {sql_table_product}.{product_name}
+    # FROM {sql_sql_table_product_category}
+    # JOIN {sql_sql_table_product_subcategory}
+    #     ON {sql_sql_table_product_category}.ProductCategoryKey = {sql_sql_table_product_subcategory}.ProductCategoryKey
+    # JOIN {sql_table_product}
+    #     ON {sql_sql_table_product_subcategory}.ProductSubcategoryKey = {sql_table_product}.ProductSubcategoryKey
+    # ORDER BY {sql_sql_table_product_category}.{product_category_name},
+    # {sql_sql_table_product_subcategory}.{product_subcategory_name},
+    # {sql_table_product}.{product_name}
     # """).execute()
 
     # if "category_subcategory_product" in con.list_tables():
@@ -313,13 +358,13 @@ def product_categories(
     input_product_category_label,
     product_category_key,
     product_category_name,
+    sql_sql_table_product_category,
     sqlcon,
-    table_product_category,
 ):
     # Generate a list of product categories in the DB to use as filtering criteria
     list_category = sqlcon.sql(f"""
     SELECT DISTINCT {product_category_name}, {product_category_key}
-    FROM {table_product_category}
+    FROM {sql_sql_table_product_category}
     ORDER BY ProductCategoryKey
     """).execute()
 
@@ -339,18 +384,18 @@ def product_subcategories(
     product_category_name,
     product_subcategory_key,
     product_subcategory_name,
+    sql_sql_table_product_category,
+    sql_sql_table_product_subcategory,
     sqlcon,
-    table_product_category,
-    table_product_subcategory,
 ):
     # Generate a list of product subcategories in the DB to use as filtering criteria
     selected_categories = "', '".join(input_product_category.value)
     list_subcategory = sqlcon.sql(f"""
     SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
-    FROM {table_product_subcategory}
+    FROM {sql_sql_table_product_subcategory}
     WHERE {product_category_key} IN (
         SELECT {product_category_key}
-        FROM {table_product_category}
+        FROM {sql_sql_table_product_category}
         WHERE {product_category_name} IN ('{selected_categories}')
     )
     ORDER BY {product_subcategory_key}
@@ -372,18 +417,18 @@ def products(
     product_name,
     product_subcategory_key,
     product_subcategory_name,
+    sql_sql_table_product_subcategory,
+    sql_table_product,
     sqlcon,
-    table_product,
-    table_product_subcategory,
 ):
     # Generate a list of products in the DB to use as filtering criteria
     selected_subcategories = "', '".join(input_product_subcategory.value)
     list_product = sqlcon.sql(f"""
     SELECT DISTINCT {product_name}, {product_key}
-    FROM {table_product}
+    FROM {sql_table_product}
     WHERE {product_subcategory_key} IN (
         SELECT {product_subcategory_key}
-        FROM {table_product_subcategory}
+        FROM {sql_sql_table_product_subcategory}
         WHERE {product_subcategory_name} IN ('{selected_subcategories}')
     )
     ORDER BY {product_key}
@@ -402,7 +447,6 @@ def input_filters(
     input_channel_internet,
     input_channel_resellers,
     input_fiscal_year,
-    input_language,
     input_product,
     input_product_category,
     input_product_subcategory,
@@ -411,7 +455,7 @@ def input_filters(
 ):
     mo.vstack(
         [
-            input_language,
+            # input_language,
             input_fiscal_year,
             mo.md(input_sales_channel_title),
             input_channel_internet,
@@ -428,7 +472,7 @@ def input_filters(
 
 
 @app.cell
-def fy_dates(input_fiscal_year, locale_date, sqlcon, table_date):
+def fy_dates(input_fiscal_year, locale_date, sql_table_date, sqlcon):
     current_fy = int(input_fiscal_year.value)
     previous_fy = current_fy - 1
 
@@ -438,10 +482,10 @@ def fy_dates(input_fiscal_year, locale_date, sqlcon, table_date):
         DayNumberOfMonth AS StartDay,
         MonthNumberOfYear AS StartMonth,
         CalendarYear AS StartYear
-    FROM {table_date}
+    FROM {sql_table_date}
     WHERE DateKey = (
         SELECT MIN(DateKey)
-        FROM {table_date}
+        FROM {sql_table_date}
         WHERE FiscalYear = {current_fy}
     )
     """).execute()
@@ -451,10 +495,10 @@ def fy_dates(input_fiscal_year, locale_date, sqlcon, table_date):
         DayNumberOfMonth AS EndDay,
         MonthNumberOfYear AS EndMonth,
         CalendarYear AS EndYear
-    FROM {table_date}
+    FROM {sql_table_date}
     WHERE DateKey = (
         SELECT MAX(DateKey)
-        FROM {table_date}
+        FROM {sql_table_date}
         WHERE FiscalYear = {current_fy}
     )
     """).execute()
@@ -483,11 +527,11 @@ def sales_profit_volume(
     product_key,
     product_name,
     sales_order_number,
+    sql_table_date,
+    sql_table_product,
+    sql_table_sales_internet,
+    sql_table_sales_reseller,
     sqlcon,
-    table_date,
-    table_product,
-    table_sales_internet,
-    table_sales_reseller,
 ):
     selected_products = "', '".join(
         product.replace("'", "''") for product in input_product.value
@@ -506,16 +550,16 @@ def sales_profit_volume(
                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
                 END AS InternetProfit,
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
-        FROM {table_sales_internet}
-        JOIN {table_date}
-        ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear IN (
+        FROM {sql_table_sales_internet}
+        JOIN {sql_table_date}
+        ON {sql_table_sales_internet}.OrderDateKey = {sql_table_date}.DateKey
+        WHERE {sql_table_date}.FiscalYear IN (
             {current_fy},
             {previous_fy} 
         )
-        AND {table_sales_internet}.{product_key} IN (
+        AND {sql_table_sales_internet}.{product_key} IN (
             SELECT {product_key}
-            FROM {table_product}
+            FROM {sql_table_product}
             WHERE {product_name} IN ('{selected_products}')
         )
         GROUP BY FiscalYear
@@ -581,16 +625,16 @@ def sales_profit_volume(
                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
                 END AS ResellerProfit,
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
-        FROM {table_sales_reseller}
-        JOIN {table_date}
-        ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
-        WHERE {table_date}.FiscalYear IN (
+        FROM {sql_table_sales_reseller}
+        JOIN {sql_table_date}
+        ON {sql_table_sales_reseller}.OrderDateKey = {sql_table_date}.DateKey
+        WHERE {sql_table_date}.FiscalYear IN (
             {current_fy}, 
             {previous_fy}
             )
-        AND {table_sales_reseller}.{product_key} IN (
+        AND {sql_table_sales_reseller}.{product_key} IN (
             SELECT {product_key}
-            FROM {table_product}
+            FROM {sql_table_product}
             WHERE {product_name} IN ('{selected_products}')
         )
         GROUP BY FiscalYear
