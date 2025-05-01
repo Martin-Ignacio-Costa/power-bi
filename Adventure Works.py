@@ -193,6 +193,8 @@ def db_settings(input_data_source):
     product_category_csv = rf"{csv_path}\ProductCategory.csv"
     product_subcategory_csv = rf"{csv_path}\ProductSubcategory.csv"
     product_csv = rf"{csv_path}\Product.csv"
+    internet_sales_csv = rf"{csv_path}\InternetSales.csv"
+    reseller_sales_csv = rf"{csv_path}\ResellerSales.csv"
 
     if input_data_source.value == "0":
         csv_table_date = con.read_csv(
@@ -267,24 +269,24 @@ def db_settings(input_data_source):
             delim=";",
             encoding="utf-8",
             columns={
-                "ProductKey": "INT",
+                "ProductKey": "INT16",
                 "ProductAlternateKey": "VARCHAR",
-                "ProductSubcategoryKey": "INT",
+                "ProductSubcategoryKey": "INT8",
                 "WeightUnitMeasureCode": "VARCHAR",
                 "SizeUnitMeasureCode": "VARCHAR",
                 "EnglishProductName": "VARCHAR",
                 "SpanishProductName": "VARCHAR",
                 "FrenchProductName": "VARCHAR",
                 "StandardCost": "VARCHAR",
-                "FinishedGoodsFlag": "INT",
+                "FinishedGoodsFlag": "BOOLEAN",
                 "Color": "VARCHAR",
-                "SafetyStockLevel": "INT",
-                "ReorderPoint": "INT",
+                "SafetyStockLevel": "INT16",
+                "ReorderPoint": "INT16",
                 "ListPrice": "VARCHAR",
                 "Size": "VARCHAR",
                 "SizeRange": "VARCHAR",
                 "Weight": "VARCHAR",
-                "DaysToManufacture": "INT",
+                "DaysToManufacture": "INT16",
                 "ProductLine": "VARCHAR",
                 "DealerPrice": "VARCHAR",
                 "Class": "VARCHAR",
@@ -303,7 +305,7 @@ def db_settings(input_data_source):
                 "StartDate": "DATE",
                 "EndDate": "VARCHAR",
                 "Status": "VARCHAR",
-            }
+            },
         )
 
     elif input_data_source.value == "1":
@@ -316,12 +318,6 @@ def db_settings(input_data_source):
             port=os.environ["SQLSERVER_PORT"],
         )
     return csv_table_product, sqlcon
-
-
-@app.cell
-def _(csv_table_product):
-    csv_table_product.schema()
-    return
 
 
 @app.cell
