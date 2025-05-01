@@ -317,9 +317,9 @@ def db_settings(input_data_source):
             encoding="utf-8",
             columns={
                 "SalesOrderNumber": "VARCHAR",
-                "SalesOrderLineNumber": "INT",
-                "CustomerKey": "INT",
-                "ProductKey": "INT",
+                "SalesOrderLineNumber": "INT8",
+                "CustomerKey": "INT32",
+                "ProductKey": "INT16",
                 "OrderDateKey": "INT32",
                 "DueDateKey": "INT32",
                 "ShipDateKey": "INT32",
@@ -342,6 +342,42 @@ def db_settings(input_data_source):
             },
         )
 
+        csv_table_reseller_sales = con.read_csv(
+            reseller_sales_csv,
+            auto_detect=False,
+            header=True,
+            decimal_separator=",",
+            delim=";",
+            encoding="utf-8",
+            columns={
+                 "SalesOrderNumber": "VARCHAR",
+                 "SalesOrderLineNumber": "INT",
+                 "ResellerKey": "INT",
+                 "ProductKey": "INT",
+                 "OrderDateKey": "INT",
+                 "DueDateKey": "INT",
+                 "ShipDateKey": "INT",
+                 "EmployeeKey": "INT",
+                 "PromotionKey": "INT",
+                 "CurrencyKey": "INT",
+                 "SalesTerritoryKey": "INT",
+                 "OrderQuantity": "INT",
+                 "UnitPrice": "DECIMAL(13, 2)",
+                 "ExtendedAmount": "DECIMAL(13, 2)",
+                 "UnitPriceDiscountPct": "VARCHAR",
+                 "DiscountAmount": "DECIMAL(13, 2)",
+                 "ProductStandardCost": "DECIMAL(13, 2)",
+                 "TotalProductCost": "DECIMAL(13, 2)",
+                 "SalesAmount": "DECIMAL(13, 2)",
+                 "TaxAmount": "DECIMAL(13, 2)",
+                 "FreightAmount": "DECIMAL(13, 2)",
+                 "CarrierTrackingNumber": "VARCHAR",
+                 "CustomerPONumber": "VARCHAR",
+                 "RevisionNumber": "INT",
+            }
+        
+        )
+
     elif input_data_source.value == "1":
         sqlcon = ibis.mssql.connect(
             user=os.environ["SQLSERVER_USER"],
@@ -351,12 +387,12 @@ def db_settings(input_data_source):
             driver="SQL Server",
             port=os.environ["SQLSERVER_PORT"],
         )
-    return csv_table_internet_sales, sqlcon
+    return csv_table_reseller_sales, sqlcon
 
 
 @app.cell
-def _(csv_table_internet_sales):
-    mo.ui.table(csv_table_internet_sales)
+def _(csv_table_reseller_sales):
+    mo.ui.table(csv_table_reseller_sales)
     return
 
 
