@@ -510,6 +510,7 @@ def product_categories(
     sqlcon,
 ):
     # Generate a list of product categories in the DB to use as filtering criteria
+
     list_category = sqlcon.sql(f"""
     SELECT DISTINCT {product_category_name}, {product_category_key}
     FROM {sql_table_product_category}
