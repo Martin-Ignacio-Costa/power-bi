@@ -263,7 +263,7 @@ def db_settings(input_data_source):
 
         csv_table_product = con.read_csv(
             product_csv,
-            auto_detect=True,
+            auto_detect=False,
             header=True,
             decimal_separator=",",
             delim=";",
@@ -308,6 +308,40 @@ def db_settings(input_data_source):
             },
         )
 
+        csv_table_internet_sales = con.read_csv(
+            internet_sales_csv,
+            auto_detect=False,
+            header=True,
+            decimal_separator=",",
+            delim=";",
+            encoding="utf-8",
+            columns={
+                "SalesOrderNumber": "VARCHAR",
+                "SalesOrderLineNumber": "INT",
+                "CustomerKey": "INT",
+                "ProductKey": "INT",
+                "OrderDateKey": "INT32",
+                "DueDateKey": "INT32",
+                "ShipDateKey": "INT32",
+                "PromotionKey": "INT8",
+                "CurrencyKey": "INT16",
+                "SalesTerritoryKey": "INT8",
+                "OrderQuantity": "INT8",
+                "UnitPrice": "DECIMAL(13, 2)",
+                "ExtendedAmount": "DECIMAL(13, 2)",
+                "UnitPriceDiscountPct": "VARCHAR",
+                "DiscountAmount": "INT8",
+                "ProductStandardCost": "DECIMAL(13, 2)",
+                "TotalProductCost": "DECIMAL(13, 2)",
+                "SalesAmount": "DECIMAL(13, 2)",
+                "TaxAmount": "DECIMAL(13, 2)",
+                "FreightAmount": "DECIMAL(13, 2)",
+                "CarrierTrackingNumber": "VARCHAR",
+                "CustomerPONumber": "VARCHAR",
+                "RevisionNumber": "INT8",
+            },
+        )
+
     elif input_data_source.value == "1":
         sqlcon = ibis.mssql.connect(
             user=os.environ["SQLSERVER_USER"],
@@ -317,12 +351,12 @@ def db_settings(input_data_source):
             driver="SQL Server",
             port=os.environ["SQLSERVER_PORT"],
         )
-    return csv_table_product, sqlcon
+    return csv_table_internet_sales, sqlcon
 
 
 @app.cell
-def _(csv_table_product):
-    mo.ui.table(csv_table_product)
+def _(csv_table_internet_sales):
+    mo.ui.table(csv_table_internet_sales)
     return
 
 
