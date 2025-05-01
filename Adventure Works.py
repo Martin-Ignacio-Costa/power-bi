@@ -31,28 +31,26 @@ with app.setup:
     import locale
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def functions(input_language):
     def locale_decimal(value):
-        \"\"\"
-        Transforms a numeric value into a \"VARCHAR\" formatted as a decimal using the corresponding regional thousands and decimals separators
-        \"\"\"
-        if hasattr(value, \"iloc\"):
+        """
+        Transforms a numeric value into a "VARCHAR" formatted as a decimal using the corresponding regional thousands and decimals separators
+        """
+        if hasattr(value, "iloc"):
             value = value.iloc[0]
-        return locale.format_\"VARCHAR\"(\"%.2f\", value, grouping=True)
+        return locale.format_string("%.2f", value, grouping=True)
 
 
     def locale_date(date):
-        \"\"\"
-        Converts a date into a \"VARCHAR\" formatted for the regional configuration
-        \"\"\"
-        if input_language.value == \"0\":
-            return date.strftime(\"%m/%d/%Y\")
-        elif input_language.value == \"1\":
-            return date.strftime(\"%d/%m/%Y\")
-    """,
-    name="functions"
-)
+        """
+        Converts a date into a "VARCHAR" formatted for the regional configuration
+        """
+        if input_language.value == "0":
+            return date.strftime("%m/%d/%Y")
+        elif input_language.value == "1":
+            return date.strftime("%d/%m/%Y")
+    return locale_date, locale_decimal
 
 
 @app.cell
@@ -181,7 +179,7 @@ def _(input_data_source):
 
 
 @app.cell
-def db_settings(input_data_source):
+def con_settings(input_data_source):
     # Settings for database and csv connections
 
     con = ibis.duckdb.connect()
@@ -205,6 +203,7 @@ def db_settings(input_data_source):
             decimal_separator=",",
             delim=";",
             encoding="utf-8",
+            nullstr="NULL",
             columns={
                 "DateKey": "INT32",
                 "FullDateAlternateKey": "DATE",
@@ -235,6 +234,7 @@ def db_settings(input_data_source):
             decimal_separator=",",
             delim=";",
             encoding="utf-8",
+            nullstr="NULL",
             columns={
                 "ProductCategoryKey": "INT8",
                 "ProductCategoryAlternateKey": "INT8",
@@ -251,6 +251,7 @@ def db_settings(input_data_source):
             decimal_separator=",",
             delim=";",
             encoding="utf-8",
+            nullstr="NULL",
             columns={
                 "ProductSubcategoryKey": "INT8",
                 "ProductSubcategoryAlternateKey": "INT8",
@@ -268,6 +269,7 @@ def db_settings(input_data_source):
             decimal_separator=",",
             delim=";",
             encoding="utf-8",
+            nullstr="NULL",
             columns={
                 "ProductKey": "INT16",
                 "ProductAlternateKey": "VARCHAR",
@@ -315,6 +317,7 @@ def db_settings(input_data_source):
             decimal_separator=",",
             delim=";",
             encoding="utf-8",
+            nullstr="NULL",
             columns={
                 "SalesOrderNumber": "VARCHAR",
                 "SalesOrderLineNumber": "INT8",
@@ -349,33 +352,33 @@ def db_settings(input_data_source):
             decimal_separator=",",
             delim=";",
             encoding="utf-8",
+            nullstr="NULL",
             columns={
-                 "SalesOrderNumber": "VARCHAR",
-                 "SalesOrderLineNumber": "INT",
-                 "ResellerKey": "INT",
-                 "ProductKey": "INT",
-                 "OrderDateKey": "INT",
-                 "DueDateKey": "INT",
-                 "ShipDateKey": "INT",
-                 "EmployeeKey": "INT",
-                 "PromotionKey": "INT",
-                 "CurrencyKey": "INT",
-                 "SalesTerritoryKey": "INT",
-                 "OrderQuantity": "INT",
-                 "UnitPrice": "DECIMAL(13, 2)",
-                 "ExtendedAmount": "DECIMAL(13, 2)",
-                 "UnitPriceDiscountPct": "VARCHAR",
-                 "DiscountAmount": "DECIMAL(13, 2)",
-                 "ProductStandardCost": "DECIMAL(13, 2)",
-                 "TotalProductCost": "DECIMAL(13, 2)",
-                 "SalesAmount": "DECIMAL(13, 2)",
-                 "TaxAmount": "DECIMAL(13, 2)",
-                 "FreightAmount": "DECIMAL(13, 2)",
-                 "CarrierTrackingNumber": "VARCHAR",
-                 "CustomerPONumber": "VARCHAR",
-                 "RevisionNumber": "INT",
-            }
-        
+                "SalesOrderNumber": "VARCHAR",
+                "SalesOrderLineNumber": "INT8",
+                "ResellerKey": "INT32",
+                "ProductKey": "INT16",
+                "OrderDateKey": "INT32",
+                "DueDateKey": "INT32",
+                "ShipDateKey": "INT32",
+                "EmployeeKey": "INT16",
+                "PromotionKey": "INT8",
+                "CurrencyKey": "INT8",
+                "SalesTerritoryKey": "INT8",
+                "OrderQuantity": "INT8",
+                "UnitPrice": "DECIMAL(13, 2)",
+                "ExtendedAmount": "DECIMAL(13, 2)",
+                "UnitPriceDiscountPct": "VARCHAR",
+                "DiscountAmount": "DECIMAL(13, 2)",
+                "ProductStandardCost": "DECIMAL(13, 2)",
+                "TotalProductCost": "DECIMAL(13, 2)",
+                "SalesAmount": "DECIMAL(13, 2)",
+                "TaxAmount": "DECIMAL(13, 2)",
+                "FreightAmount": "DECIMAL(13, 2)",
+                "CarrierTrackingNumber": "VARCHAR",
+                "CustomerPONumber": "VARCHAR",
+                "RevisionNumber": "INT8",
+            },
         )
 
     elif input_data_source.value == "1":
@@ -387,28 +390,15 @@ def db_settings(input_data_source):
             driver="SQL Server",
             port=os.environ["SQLSERVER_PORT"],
         )
-    return csv_table_reseller_sales, sqlcon
-
-
-@app.cell
-def _(csv_table_reseller_sales):
-    mo.ui.table(csv_table_reseller_sales)
-    return
-
-
-@app.cell
-def db_tables():
-    # List of SQL Server tables for AdventureWorksDW2020 DB
-
-    # Dimension tables
-    sql_table_date = "DimDate"
-    sql_sql_table_product_category = "DimProductCategory"
-    sql_sql_table_product_subcategory = "DimProductSubcategory"
-    sql_table_product = "DimProduct"
-
-    # Fact tables
-    sql_table_sales_reseller = "FactResellerSales"
-    sql_table_sales_internet = "FactInternetSales"
+        # Dimension tables
+        sql_table_date = "DimDate"
+        sql_sql_table_product_category = "DimProductCategory"
+        sql_sql_table_product_subcategory = "DimProductSubcategory"
+        sql_table_product = "DimProduct"
+    
+        # Fact tables
+        sql_table_sales_reseller = "FactResellerSales"
+        sql_table_sales_internet = "FactInternetSales"
     return (
         sql_sql_table_product_category,
         sql_sql_table_product_subcategory,
@@ -416,7 +406,16 @@ def db_tables():
         sql_table_product,
         sql_table_sales_internet,
         sql_table_sales_reseller,
+        sqlcon,
     )
+
+
+@app.cell
+def db_tables():
+    # List of SQL Server tables for AdventureWorksDW2020 DB
+
+
+    return
 
 
 @app.cell
