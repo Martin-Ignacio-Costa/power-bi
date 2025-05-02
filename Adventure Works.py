@@ -294,16 +294,8 @@ def con_settings(input_data_source):
                 "Class": "VARCHAR",
                 "Style": "VARCHAR",
                 "ModelName": "VARCHAR",
-                "LargePhoto": "VARCHAR",
                 "EnglishDescription": "VARCHAR",
                 "FrenchDescription": "VARCHAR",
-                "ChineseDescription": "VARCHAR",
-                "ArabicDescription": "VARCHAR",
-                "HebrewDescription": "VARCHAR",
-                "ThaiDescription": "VARCHAR",
-                "GermanDescription": "VARCHAR",
-                "JapaneseDescription": "VARCHAR",
-                "TurkishDescription": "VARCHAR",
                 "StartDate": "DATE",
                 "EndDate": "VARCHAR",
                 "Status": "VARCHAR",
@@ -381,6 +373,21 @@ def con_settings(input_data_source):
             },
         )
 
+        table_date = con.create_table("DimDate", csv_table_date)
+        table_product_category = con.create_table("DimProductCategory",
+            csv_table_product_category 
+        )
+        table_product_subcategory = con.create_table("DimProductSubcategory",
+            csv_table_product_subcategory
+        )
+        table_product = con.create_table( "DimProduct", csv_table_product)
+        table_sales_reseller = con.create_table("FactResellerSales",
+            csv_table_reseller_sales
+        )
+        table_sales_internet = con.create_table("FactInternetSales",
+            csv_table_internet_sales
+        )
+
     elif input_data_source.value == "1":
         sqlcon = ibis.mssql.connect(
             user=os.environ["SQLSERVER_USER"],
@@ -390,52 +397,55 @@ def con_settings(input_data_source):
             driver="SQL Server",
             port=os.environ["SQLSERVER_PORT"],
         )
+
         # Dimension tables
-        sql_table_date = "DimDate"
-        sql_table_product_category = "DimProductCategory"
-        sql_table_product_subcategory = "DimProductSubcategory"
-        sql_table_product = "DimProduct"
-    
+        table_date = "DimDate"
+        table_product_category = "DimProductCategory"
+        table_product_subcategory = "DimProductSubcategory"
+        table_product = "DimProduct"
+
         # Fact tables
-        sql_table_sales_reseller = "FactResellerSales"
-        sql_table_sales_internet = "FactInternetSales"
+        table_sales_reseller = "FactResellerSales"
+        table_sales_internet = "FactInternetSales"
     return (
-        sql_table_date,
-        sql_table_product,
-        sql_table_product_category,
-        sql_table_product_subcategory,
-        sql_table_sales_internet,
-        sql_table_sales_reseller,
         sqlcon,
+        table_date,
+        table_product,
+        table_product_category,
+        table_product_subcategory,
+        table_sales_internet,
+        table_sales_reseller,
     )
 
 
 @app.cell
+def _(table_date):
+    mo.ui.table(table_date)
+    return
+
+
+@app.cell
 def quick_queries(
-    sql_table_date,
-    sql_table_product,
-    sql_table_product_category,
-    sql_table_product_subcategory,
-    sql_table_sales_internet,
-    sql_table_sales_reseller,
     sqlcon,
+    table_date,
+    table_product,
+    table_product_category,
+    table_product_subcategory,
+    table_sales_internet,
+    table_sales_reseller,
 ):
     # Quick queries for data exploration
 
-    qq_sql_table_date = sqlcon.sql(f"SELECT * FROM {sql_table_date}")
-    qq_sql_table_product_category = sqlcon.sql(
-        f"SELECT * FROM {sql_table_product_category}"
+    qq_table_date = sqlcon.sql(f"SELECT * FROM {table_date}")
+    qq_table_product_category = sqlcon.sql(
+        f"SELECT * FROM {table_product_category}"
     )
-    qq_sql_table_product_subcategory = sqlcon.sql(
-        f"SELECT * FROM {sql_table_product_subcategory}"
+    qq_table_product_subcategory = sqlcon.sql(
+        f"SELECT * FROM {table_product_subcategory}"
     )
-    qq_sql_table_product = sqlcon.sql(f"SELECT * FROM {sql_table_product}")
-    qq_sql_table_sales_reseller = sqlcon.sql(
-        f"SELECT * FROM {sql_table_sales_reseller}"
-    )
-    qq_sql_table_sales_internet = sqlcon.sql(
-        f"SELECT * FROM {sql_table_sales_internet}"
-    )
+    qq_table_product = sqlcon.sql(f"SELECT * FROM {table_product}")
+    qq_table_sales_reseller = sqlcon.sql(f"SELECT * FROM {table_sales_reseller}")
+    qq_table_sales_internet = sqlcon.sql(f"SELECT * FROM {table_sales_internet}")
     return
 
 
@@ -445,20 +455,20 @@ def relationships():
 
     # category_subcategory_product = sqlcon.sql(f"""
     # SELECT
-    # {sql_table_product_category}.ProductCategoryKey,
-    # {sql_table_product_category}.{product_category_name},
-    # {sql_table_product_subcategory}.ProductSubcategoryKey,
-    # {sql_table_product_subcategory}.{product_subcategory_name},
-    # {sql_table_product}.ProductKey,
-    # {sql_table_product}.{product_name}
-    # FROM {sql_table_product_category}
-    # JOIN {sql_table_product_subcategory}
-    #     ON {sql_table_product_category}.ProductCategoryKey = {sql_table_product_subcategory}.ProductCategoryKey
-    # JOIN {sql_table_product}
-    #     ON {sql_table_product_subcategory}.ProductSubcategoryKey = {sql_table_product}.ProductSubcategoryKey
-    # ORDER BY {sql_table_product_category}.{product_category_name},
-    # {sql_table_product_subcategory}.{product_subcategory_name},
-    # {sql_table_product}.{product_name}
+    # {table_product_category}.ProductCategoryKey,
+    # {table_product_category}.{product_category_name},
+    # {table_product_subcategory}.ProductSubcategoryKey,
+    # {table_product_subcategory}.{product_subcategory_name},
+    # {table_product}.ProductKey,
+    # {table_product}.{product_name}
+    # FROM {table_product_category}
+    # JOIN {table_product_subcategory}
+    #     ON {table_product_category}.ProductCategoryKey = {table_product_subcategory}.ProductCategoryKey
+    # JOIN {table_product}
+    #     ON {table_product_subcategory}.ProductSubcategoryKey = {table_product}.ProductSubcategoryKey
+    # ORDER BY {table_product_category}.{product_category_name},
+    # {table_product_subcategory}.{product_subcategory_name},
+    # {table_product}.{product_name}
     # """).execute()
 
     # if "category_subcategory_product" in con.list_tables():
@@ -506,14 +516,14 @@ def product_categories(
     input_product_category_label,
     product_category_key,
     product_category_name,
-    sql_table_product_category,
     sqlcon,
+    table_product_category,
 ):
     # Generate a list of product categories in the DB to use as filtering criteria
 
     list_category = sqlcon.sql(f"""
     SELECT DISTINCT {product_category_name}, {product_category_key}
-    FROM {sql_table_product_category}
+    FROM {table_product_category}
     ORDER BY ProductCategoryKey
     """).execute()
 
@@ -533,18 +543,18 @@ def product_subcategories(
     product_category_name,
     product_subcategory_key,
     product_subcategory_name,
-    sql_table_product_category,
-    sql_table_product_subcategory,
     sqlcon,
+    table_product_category,
+    table_product_subcategory,
 ):
     # Generate a list of product subcategories in the DB to use as filtering criteria
     selected_categories = "', '".join(input_product_category.value)
     list_subcategory = sqlcon.sql(f"""
     SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
-    FROM {sql_table_product_subcategory}
+    FROM {table_product_subcategory}
     WHERE {product_category_key} IN (
         SELECT {product_category_key}
-        FROM {sql_table_product_category}
+        FROM {table_product_category}
         WHERE {product_category_name} IN ('{selected_categories}')
     )
     ORDER BY {product_subcategory_key}
@@ -566,18 +576,18 @@ def products(
     product_name,
     product_subcategory_key,
     product_subcategory_name,
-    sql_table_product,
-    sql_table_product_subcategory,
     sqlcon,
+    table_product,
+    table_product_subcategory,
 ):
     # Generate a list of products in the DB to use as filtering criteria
     selected_subcategories = "', '".join(input_product_subcategory.value)
     list_product = sqlcon.sql(f"""
     SELECT DISTINCT {product_name}, {product_key}
-    FROM {sql_table_product}
+    FROM {table_product}
     WHERE {product_subcategory_key} IN (
         SELECT {product_subcategory_key}
-        FROM {sql_table_product_subcategory}
+        FROM {table_product_subcategory}
         WHERE {product_subcategory_name} IN ('{selected_subcategories}')
     )
     ORDER BY {product_key}
@@ -621,7 +631,7 @@ def input_filters(
 
 
 @app.cell
-def fy_dates(input_fiscal_year, locale_date, sql_table_date, sqlcon):
+def fy_dates(input_fiscal_year, locale_date, sqlcon, table_date):
     current_fy = int(input_fiscal_year.value)
     previous_fy = current_fy - 1
 
@@ -631,34 +641,34 @@ def fy_dates(input_fiscal_year, locale_date, sql_table_date, sqlcon):
         DayNumberOfMonth AS StartDay,
         MonthNumberOfYear AS StartMonth,
         CalendarYear AS StartYear
-    FROM {sql_table_date}
+    FROM {table_date}
     WHERE DateKey = (
         SELECT MIN(DateKey)
-        FROM {sql_table_date}
+        FROM {table_date}
         WHERE FiscalYear = {current_fy}
     )
-    """).execute()
+    """)
 
     fy_max_dates = sqlcon.sql(f"""
     SELECT 
         DayNumberOfMonth AS EndDay,
         MonthNumberOfYear AS EndMonth,
         CalendarYear AS EndYear
-    FROM {sql_table_date}
+    FROM {table_date}
     WHERE DateKey = (
         SELECT MAX(DateKey)
-        FROM {sql_table_date}
+        FROM {table_date}
         WHERE FiscalYear = {current_fy}
     )
-    """).execute()
+    """)
 
-    fy_start_day = fy_min_dates["StartDay"].iat[0]
-    fy_start_month = fy_min_dates["StartMonth"].iat[0]
-    fy_start_year = fy_min_dates["StartYear"].iat[0]
+    fy_start_day = fy_min_dates["StartDay"].execute().iat[0]
+    fy_start_month = fy_min_dates["StartMonth"].execute().iat[0]
+    fy_start_year = fy_min_dates["StartYear"].execute().iat[0]
 
-    fy_end_day = fy_max_dates["EndDay"].iat[0]
-    fy_end_month = fy_max_dates["EndMonth"].iat[0]
-    fy_end_year = fy_max_dates["EndYear"].iat[0]
+    fy_end_day = fy_max_dates["EndDay"].execute().iat[0]
+    fy_end_month = fy_max_dates["EndMonth"].execute().iat[0]
+    fy_end_year = fy_max_dates["EndYear"].execute().iat[0]
 
     fy_start_date = locale_date(date(fy_start_year, fy_start_month, fy_start_day))
     fy_end_date = locale_date(date(fy_end_year, fy_end_month, fy_end_day))
@@ -676,11 +686,11 @@ def sales_profit_volume(
     product_key,
     product_name,
     sales_order_number,
-    sql_table_date,
-    sql_table_product,
-    sql_table_sales_internet,
-    sql_table_sales_reseller,
     sqlcon,
+    table_date,
+    table_product,
+    table_sales_internet,
+    table_sales_reseller,
 ):
     selected_products = "', '".join(
         product.replace("'", "''") for product in input_product.value
@@ -699,16 +709,16 @@ def sales_profit_volume(
                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
                 END AS InternetProfit,
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
-        FROM {sql_table_sales_internet}
-        JOIN {sql_table_date}
-        ON {sql_table_sales_internet}.OrderDateKey = {sql_table_date}.DateKey
-        WHERE {sql_table_date}.FiscalYear IN (
+        FROM {table_sales_internet}
+        JOIN {table_date}
+        ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear IN (
             {current_fy},
             {previous_fy} 
         )
-        AND {sql_table_sales_internet}.{product_key} IN (
+        AND {table_sales_internet}.{product_key} IN (
             SELECT {product_key}
-            FROM {sql_table_product}
+            FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
         )
         GROUP BY FiscalYear
@@ -774,16 +784,16 @@ def sales_profit_volume(
                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
                 END AS ResellerProfit,
             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
-        FROM {sql_table_sales_reseller}
-        JOIN {sql_table_date}
-        ON {sql_table_sales_reseller}.OrderDateKey = {sql_table_date}.DateKey
-        WHERE {sql_table_date}.FiscalYear IN (
+        FROM {table_sales_reseller}
+        JOIN {table_date}
+        ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
+        WHERE {table_date}.FiscalYear IN (
             {current_fy}, 
             {previous_fy}
             )
-        AND {sql_table_sales_reseller}.{product_key} IN (
+        AND {table_sales_reseller}.{product_key} IN (
             SELECT {product_key}
-            FROM {sql_table_product}
+            FROM {table_product}
             WHERE {product_name} IN ('{selected_products}')
         )
         GROUP BY FiscalYear
