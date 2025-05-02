@@ -433,13 +433,6 @@ def con_settings(input_data_source):
 
 
 @app.cell
-def quick_queries(table_date):
-
-    table_date
-    return
-
-
-@app.cell
 def relationships():
     # Table relationships for use in inputs, filtering and analysis
 
@@ -504,18 +497,22 @@ def sales_channels(
 @app.cell
 def product_categories(
     dscon,
+    input_data_source,
     input_product_category_label,
     product_category_key,
     product_category_name,
     table_product_category,
 ):
     # Generate a list of product categories in the DB to use as filtering criteria
+    if input_data_source.value == "0":
+        list_category = table_product_category.select([f"{product_category_key}", f"{product_category_name}"]).distinct()        .order_by(f"{product_category_key}").execute()                    
 
-    list_category = dscon.sql(f"""
-    SELECT DISTINCT {product_category_name}, {product_category_key}
-    FROM {table_product_category}
-    ORDER BY ProductCategoryKey
-    """).execute()
+    if input_data_source.value == "1":
+        list_category = dscon.sql(f"""
+        SELECT DISTINCT {product_category_name}, {product_category_key}
+        FROM {table_product_category}
+        ORDER BY ProductCategoryKey
+        """).execute()
 
     input_product_category = mo.ui.multiselect.from_series(
         list_category[f"{product_category_name}"],
