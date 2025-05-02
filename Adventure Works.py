@@ -257,7 +257,7 @@ def con_settings(input_data_source):
             columns={
                 "ProductSubcategoryKey": "INT8",
                 "ProductSubcategoryAlternateKey": "INT8",
-                "EnglisProductSubcategoryName": "VARCHAR",
+                "EnglishProductSubcategoryName": "VARCHAR",
                 "SpanishProductSubcategoryName": "VARCHAR",
                 "FrenchProductSubcategoryName": "VARCHAR",
                 "ProductCategoryKey": "INT8",
@@ -505,9 +505,14 @@ def product_categories(
 ):
     # Generate a list of product categories in the DB to use as filtering criteria
     if input_data_source.value == "0":
-        list_category = table_product_category.select([f"{product_category_key}", f"{product_category_name}"]).distinct()        .order_by(f"{product_category_key}").execute()                    
+        list_category = (table_product_category
+            .select([product_category_key, product_category_name])
+            .distinct()
+            .order_by(product_category_key)
+            .execute()
+                        )
 
-    if input_data_source.value == "1":
+    elif input_data_source.value == "1":
         list_category = dscon.sql(f"""
         SELECT DISTINCT {product_category_name}, {product_category_key}
         FROM {table_product_category}
@@ -525,6 +530,7 @@ def product_categories(
 @app.cell
 def product_subcategories(
     dscon,
+    input_data_source,
     input_product_category,
     input_product_subcategory_label,
     product_category_key,
@@ -536,16 +542,22 @@ def product_subcategories(
 ):
     # Generate a list of product subcategories in the DB to use as filtering criteria
     selected_categories = "', '".join(input_product_category.value)
-    list_subcategory = dscon.sql(f"""
-    SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
-    FROM {table_product_subcategory}
-    WHERE {product_category_key} IN (
-        SELECT {product_category_key}
-        FROM {table_product_category}
-        WHERE {product_category_name} IN ('{selected_categories}')
-    )
-    ORDER BY {product_subcategory_key}
-    """).execute()
+
+    if input_data_source.value == "0":
+        list_subcategory = (table_product_subcategory.select([product_subcategory_name, product_subcategory_key])                        .filter(table_product_subcategory[product_category_key].isin(selected_categories))
+                                   )
+
+    elif input_data_source.value == "1":
+        list_subcategory = dscon.sql(f"""
+        SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
+        FROM {table_product_subcategory}
+        WHERE {product_category_key} IN (
+            SELECT {product_category_key}
+            FROM {table_product_category}
+            WHERE {product_category_name} IN ('{selected_categories}')
+        )
+        ORDER BY {product_subcategory_key}
+        """).execute()
 
     input_product_subcategory = mo.ui.multiselect.from_series(
         list_subcategory[f"{product_subcategory_name}"],
