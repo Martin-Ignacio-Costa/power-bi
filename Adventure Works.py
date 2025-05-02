@@ -143,7 +143,6 @@ def language_variations(input_language):
         input_fiscal_year_label,
         input_product_category_label,
         input_product_label,
-        input_product_subcategory_label,
         input_product_title,
         input_sales_channel_title,
         product_category_key,
@@ -529,10 +528,8 @@ def product_categories(
 
 @app.cell
 def product_subcategories(
-    dscon,
     input_data_source,
     input_product_category,
-    input_product_subcategory_label,
     product_category_key,
     product_category_name,
     product_subcategory_key,
@@ -541,30 +538,49 @@ def product_subcategories(
     table_product_subcategory,
 ):
     # Generate a list of product subcategories in the DB to use as filtering criteria
-    selected_categories = "', '".join(input_product_category.value)
-
     if input_data_source.value == "0":
-        list_subcategory = (table_product_subcategory.select([product_subcategory_name, product_subcategory_key])                        .filter(table_product_subcategory[product_category_key].isin(selected_categories))
-                                   )
+        selected_categories = input_product_category.value
 
-    elif input_data_source.value == "1":
-        list_subcategory = dscon.sql(f"""
-        SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
-        FROM {table_product_subcategory}
-        WHERE {product_category_key} IN (
-            SELECT {product_category_key}
-            FROM {table_product_category}
-            WHERE {product_category_name} IN ('{selected_categories}')
+        selected_keys = (
+            table_product_category
+            .filter(table_product_category[product_category_name]
+                .isin(selected_categories))
+                .select(product_category_key, product_category_name)
+        )    
+    
+        list_subcategory = (
+            table_product_subcategory
+                .select([product_subcategory_name, product_subcategory_key])
+                .filter(table_product_subcategory[product_category_key]
+                    .isin(selected_keys[product_category_key]))
         )
-        ORDER BY {product_subcategory_key}
-        """).execute()
 
-    input_product_subcategory = mo.ui.multiselect.from_series(
-        list_subcategory[f"{product_subcategory_name}"],
-        value=list_subcategory[f"{product_subcategory_name}"],
-        label=input_product_subcategory_label,
-    )
-    return (input_product_subcategory,)
+    # elif input_data_source.value == "1":
+    #     selected_categories = "', '".join(input_product_category.value)
+    
+    #     list_subcategory = dscon.sql(f"""
+    #     SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
+    #     FROM {table_product_subcategory}
+    #     WHERE {product_category_key} IN (
+    #         SELECT {product_category_key}
+    #         FROM {table_product_category}
+    #         WHERE {product_category_name} IN ('{selected_categories}')
+    #     )
+    #     ORDER BY {product_subcategory_key}
+    #     """).execute()
+
+    # input_product_subcategory = mo.ui.multiselect.from_series(
+    #     list_subcategory[f"{product_subcategory_name}"],
+    #     value=list_subcategory[f"{product_subcategory_name}"],
+    #     label=input_product_subcategory_label,
+    # )
+    return (selected_keys,)
+
+
+@app.cell
+def _(selected_keys):
+    selected_keys
+    return
 
 
 @app.cell
