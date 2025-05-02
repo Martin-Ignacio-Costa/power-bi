@@ -195,6 +195,8 @@ def con_settings(input_data_source):
     reseller_sales_csv = rf"{csv_path}\ResellerSales.csv"
 
     if input_data_source.value == "0":
+        dscon = con
+    
         csv_table_date = con.read_csv(
             date_csv,
             auto_detect=False,
@@ -373,23 +375,23 @@ def con_settings(input_data_source):
             },
         )
 
-        table_date = con.create_table("DimDate", csv_table_date)
-        table_product_category = con.create_table("DimProductCategory",
+        table_date = dscon.create_table("DimDate", csv_table_date)
+        table_product_category = dscon.create_table("DimProductCategory",
             csv_table_product_category 
         )
-        table_product_subcategory = con.create_table("DimProductSubcategory",
+        table_product_subcategory = dscon.create_table("DimProductSubcategory",
             csv_table_product_subcategory
         )
-        table_product = con.create_table( "DimProduct", csv_table_product)
-        table_sales_reseller = con.create_table("FactResellerSales",
+        table_product = dscon.create_table( "DimProduct", csv_table_product)
+        table_sales_reseller = dscon.create_table("FactResellerSales",
             csv_table_reseller_sales
         )
-        table_sales_internet = con.create_table("FactInternetSales",
+        table_sales_internet = dscon.create_table("FactInternetSales",
             csv_table_internet_sales
         )
 
     elif input_data_source.value == "1":
-        sqlcon = ibis.mssql.connect(
+        dscon = ibis.mssql.connect(
             user=os.environ["SQLSERVER_USER"],
             password=os.environ["SQLSERVER_PASS"],
             host=os.environ["SQLSERVER_HOST"],
@@ -407,8 +409,20 @@ def con_settings(input_data_source):
         # Fact tables
         table_sales_reseller = "FactResellerSales"
         table_sales_internet = "FactInternetSales"
+
+        # Quick queries for data exploration    
+        qq_table_date = dscon.sql(f"SELECT * FROM {table_date}")
+        qq_table_product_category = dscon.sql(
+            f"SELECT * FROM {table_product_category}"
+        )
+        qq_table_product_subcategory = dscon.sql(
+            f"SELECT * FROM {table_product_subcategory}"
+        )
+        qq_table_product = dscon.sql(f"SELECT * FROM {table_product}")
+        qq_table_sales_reseller = dscon.sql(f"SELECT * FROM {table_sales_reseller}")
+        qq_table_sales_internet = dscon.sql(f"SELECT * FROM {table_sales_internet}")
     return (
-        sqlcon,
+        dscon,
         table_date,
         table_product,
         table_product_category,
@@ -419,33 +433,9 @@ def con_settings(input_data_source):
 
 
 @app.cell
-def _(table_date):
-    mo.ui.table(table_date)
-    return
+def quick_queries(table_date):
 
-
-@app.cell
-def quick_queries(
-    sqlcon,
-    table_date,
-    table_product,
-    table_product_category,
-    table_product_subcategory,
-    table_sales_internet,
-    table_sales_reseller,
-):
-    # Quick queries for data exploration
-
-    qq_table_date = sqlcon.sql(f"SELECT * FROM {table_date}")
-    qq_table_product_category = sqlcon.sql(
-        f"SELECT * FROM {table_product_category}"
-    )
-    qq_table_product_subcategory = sqlcon.sql(
-        f"SELECT * FROM {table_product_subcategory}"
-    )
-    qq_table_product = sqlcon.sql(f"SELECT * FROM {table_product}")
-    qq_table_sales_reseller = sqlcon.sql(f"SELECT * FROM {table_sales_reseller}")
-    qq_table_sales_internet = sqlcon.sql(f"SELECT * FROM {table_sales_internet}")
+    table_date
     return
 
 
@@ -453,7 +443,7 @@ def quick_queries(
 def relationships():
     # Table relationships for use in inputs, filtering and analysis
 
-    # category_subcategory_product = sqlcon.sql(f"""
+    # category_subcategory_product = dscon.sql(f"""
     # SELECT
     # {table_product_category}.ProductCategoryKey,
     # {table_product_category}.{product_category_name},
@@ -513,15 +503,15 @@ def sales_channels(
 
 @app.cell
 def product_categories(
+    dscon,
     input_product_category_label,
     product_category_key,
     product_category_name,
-    sqlcon,
     table_product_category,
 ):
     # Generate a list of product categories in the DB to use as filtering criteria
 
-    list_category = sqlcon.sql(f"""
+    list_category = dscon.sql(f"""
     SELECT DISTINCT {product_category_name}, {product_category_key}
     FROM {table_product_category}
     ORDER BY ProductCategoryKey
@@ -537,19 +527,19 @@ def product_categories(
 
 @app.cell
 def product_subcategories(
+    dscon,
     input_product_category,
     input_product_subcategory_label,
     product_category_key,
     product_category_name,
     product_subcategory_key,
     product_subcategory_name,
-    sqlcon,
     table_product_category,
     table_product_subcategory,
 ):
     # Generate a list of product subcategories in the DB to use as filtering criteria
     selected_categories = "', '".join(input_product_category.value)
-    list_subcategory = sqlcon.sql(f"""
+    list_subcategory = dscon.sql(f"""
     SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
     FROM {table_product_subcategory}
     WHERE {product_category_key} IN (
@@ -570,19 +560,19 @@ def product_subcategories(
 
 @app.cell
 def products(
+    dscon,
     input_product_label,
     input_product_subcategory,
     product_key,
     product_name,
     product_subcategory_key,
     product_subcategory_name,
-    sqlcon,
     table_product,
     table_product_subcategory,
 ):
     # Generate a list of products in the DB to use as filtering criteria
     selected_subcategories = "', '".join(input_product_subcategory.value)
-    list_product = sqlcon.sql(f"""
+    list_product = dscon.sql(f"""
     SELECT DISTINCT {product_name}, {product_key}
     FROM {table_product}
     WHERE {product_subcategory_key} IN (
@@ -631,12 +621,12 @@ def input_filters(
 
 
 @app.cell
-def fy_dates(input_fiscal_year, locale_date, sqlcon, table_date):
+def fy_dates(dscon, input_fiscal_year, locale_date, table_date):
     current_fy = int(input_fiscal_year.value)
     previous_fy = current_fy - 1
 
     # Fiscal year dates
-    fy_min_dates = sqlcon.sql(f"""
+    fy_min_dates = dscon.sql(f"""
     SELECT 
         DayNumberOfMonth AS StartDay,
         MonthNumberOfYear AS StartMonth,
@@ -649,7 +639,7 @@ def fy_dates(input_fiscal_year, locale_date, sqlcon, table_date):
     )
     """)
 
-    fy_max_dates = sqlcon.sql(f"""
+    fy_max_dates = dscon.sql(f"""
     SELECT 
         DayNumberOfMonth AS EndDay,
         MonthNumberOfYear AS EndMonth,
@@ -678,6 +668,7 @@ def fy_dates(input_fiscal_year, locale_date, sqlcon, table_date):
 @app.cell
 def sales_profit_volume(
     current_fy,
+    dscon,
     input_channel_internet,
     input_channel_resellers,
     input_product,
@@ -686,7 +677,6 @@ def sales_profit_volume(
     product_key,
     product_name,
     sales_order_number,
-    sqlcon,
     table_date,
     table_product,
     table_sales_internet,
@@ -699,7 +689,7 @@ def sales_profit_volume(
     # Channel sales and profit
 
     if input_channel_internet.value == True:
-        channel_internet = sqlcon.sql(f"""
+        channel_internet = dscon.sql(f"""
         SELECT 
             FiscalYear,
             CASE WHEN COUNT(*) = 0 THEN 0
@@ -774,7 +764,7 @@ def sales_profit_volume(
         previous_volume_channel_internet = 0
 
     if input_channel_resellers.value == True:
-        channel_resellers = sqlcon.sql(f"""
+        channel_resellers = dscon.sql(f"""
         SELECT 
             FiscalYear,
             CASE WHEN COUNT(*) = 0 THEN 0
