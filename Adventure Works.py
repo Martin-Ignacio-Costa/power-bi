@@ -51,7 +51,7 @@ def functions(input_language):
             return date.strftime("%m/%d/%Y")
         elif input_language.value == "1":
             return date.strftime("%d/%m/%Y")
-    return (locale_date,)
+    return locale_date, locale_decimal
 
 
 @app.cell
@@ -756,6 +756,7 @@ def sales_profit_volume(
     input_channel_resellers,
     input_data_source,
     input_product,
+    locale_decimal,
     previous_fy,
     product_key,
     product_name,
@@ -1032,73 +1033,72 @@ def sales_profit_volume(
     if previous_volume_channel_resellers is None:
         previous_volume_channel_resellers = 0
 
+    current_sales_channel_all = Decimal(
+        current_sales_channel_internet + current_sales_channel_resellers
+    )
+    current_profit_channel_all = Decimal(
+        current_profit_channel_internet + current_profit_channel_resellers
+    )
+    previous_sales_channel_all = Decimal(
+        previous_sales_channel_internet + previous_sales_channel_resellers
+    )
+    previous_profit_channel_all = Decimal(
+        previous_profit_channel_internet + previous_profit_channel_resellers
+    )
+    current_volume_channel_all = Decimal(
+        current_volume_channel_internet + current_volume_channel_resellers
+    )
+    previous_volume_channel_all = Decimal(
+        previous_volume_channel_internet + previous_volume_channel_resellers
+    )
 
+    if previous_sales_channel_all == 0:
+        sales_yoy = "N/A"
+    else:
+        sales_yoy = str(
+            round(
+                (current_sales_channel_all / previous_sales_channel_all) * 100
+                - 100,
+                2,
+            )
+        )
+    if previous_profit_channel_all == 0:
+        profit_yoy = "N/A"
+    else:
+        profit_yoy = str(
+            round(
+                (current_profit_channel_all / previous_profit_channel_all) * 100
+                - 100,
+                2,
+            )
+        )
+    if previous_volume_channel_all == 0:
+        volume_yoy = "N/A"
+    else:
+        volume_yoy = str(
+            round(
+                (current_volume_channel_all / previous_volume_channel_all) * 100
+                - 100,
+                2,
+            )
+        )
 
-            
-         
-  
-   
+    sales_millions = str(round(current_sales_channel_all / 1_000_000, 2))
+    profit_millions = str(round(current_profit_channel_all / 1_000_000, 2))
+    current_volume_thousands = str(round(current_volume_channel_all / 1_000, 2))
 
-    # current_sales_channel_all = Decimal(
-    #     current_sales_channel_internet + current_sales_channel_resellers
-    # )
-    # current_profit_channel_all = Decimal(
-    #     current_profit_channel_internet + current_profit_channel_resellers
-    # )
-    # previous_sales_channel_all = Decimal(
-    #     previous_sales_channel_internet + previous_sales_channel_resellers
-    # )
-    # previous_profit_channel_all = Decimal(
-    #     previous_profit_channel_internet + previous_profit_channel_resellers
-    # )
-    # current_volume_channel_all = Decimal(
-    #     current_volume_channel_internet + current_volume_channel_resellers
-    # )
-    # previous_volume_channel_all = Decimal(
-    #     previous_volume_channel_internet + previous_volume_channel_resellers
-    # )
-
-    # if previous_sales_channel_all == 0:
-    #     sales_yoy = "N/A"
-    # else:
-    #     sales_yoy = str(
-    #         round(
-    #             (current_sales_channel_all / previous_sales_channel_all) * 100
-    #             - 100,
-    #             2,
-    #         )
-    #     )
-    # if previous_profit_channel_all == 0:
-    #     profit_yoy = "N/A"
-    # else:
-    #     profit_yoy = str(
-    #         round(
-    #             (current_profit_channel_all / previous_profit_channel_all) * 100
-    #             - 100,
-    #             2,
-    #         )
-    #     )
-    # if previous_volume_channel_all == 0:
-    #     volume_yoy = "N/A"
-    # else:
-    #     volume_yoy = str(
-    #         round(
-    #             (current_volume_channel_all / previous_volume_channel_all) * 100
-    #             - 100,
-    #             2,
-    #         )
-    #     )
-
-    # sales_millions = str(round(current_sales_channel_all / 1_000_000, 2))
-    # profit_millions = str(round(current_profit_channel_all / 1_000_000, 2))
-    # current_volume_thousands = str(round(current_volume_channel_all / 1_000, 2))
-
-    # # Format results with thousands and decimal separators
-    # current_sales_channel_all, current_profit_channel_all = (
-    #     locale_decimal(current_sales_channel_all),
-    #     locale_decimal(current_profit_channel_all),
-    # )
-    return
+    # Format results with thousands and decimal separators
+    current_sales_channel_all, current_profit_channel_all = (
+        locale_decimal(current_sales_channel_all),
+        locale_decimal(current_profit_channel_all),
+    )
+    return (
+        current_profit_channel_all,
+        current_sales_channel_all,
+        current_volume_thousands,
+        profit_millions,
+        sales_millions,
+    )
 
 
 @app.cell
