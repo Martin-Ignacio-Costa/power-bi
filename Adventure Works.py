@@ -433,6 +433,7 @@ def con_settings(input_data_source):
         table_product_category,
         table_product_subcategory,
         table_sales_internet,
+        table_sales_reseller,
     )
 
 
@@ -752,6 +753,7 @@ def sales_profit_volume(
     current_fy,
     dscon,
     input_channel_internet,
+    input_channel_resellers,
     input_data_source,
     input_product,
     previous_fy,
@@ -761,6 +763,7 @@ def sales_profit_volume(
     table_date,
     table_product,
     table_sales_internet,
+    table_sales_reseller,
 ):
     # Channel sales and profit
     if input_data_source.value == "0":
@@ -775,7 +778,7 @@ def sales_profit_volume(
                 table_product[product_name].isin(selected_products)
             )
     
-            channel_internet = ibis.memtable(
+            channel_internet = (
                 filtered_internet_sales.filter(
                     filtered_internet_sales[product_key].isin(
                         filtered_products[product_key]
@@ -807,6 +810,56 @@ def sales_profit_volume(
                 )
                 .end(),
                 OrderVolume=channel_internet[sales_order_number].nunique(),
+            )
+        else:
+            current_sales_channel_internet = 0
+            current_profit_channel_internet = 0
+            previous_sales_channel_internet = 0
+            previous_profit_channel_internet = 0
+            current_volume_channel_internet = 0
+            previous_volume_channel_internet = 0
+        
+        if input_channel_internet.value == True:
+            filtered_reseller_sales = table_sales_reseller.join(
+                table_date,
+                table_sales_reseller["OrderDateKey"] == table_date["DateKey"],
+            ).filter(table_date["FiscalYear"].isin([current_fy, previous_fy]))
+            filtered_products = table_product.filter(
+                table_product[product_name].isin(selected_products)
+            )
+    
+            channel_resellers = (
+                filtered_reseller_sales.filter(
+                    filtered_reseller_sales[product_key].isin(
+                        filtered_products[product_key]
+                    )
+                )
+            )
+    
+            channel_resellers = channel_resellers.group_by(["FiscalYear"]).aggregate(
+                ResellerSales=ibis.case()
+                .when(channel_resellers.count() == 0, 0)
+                .else_(
+                    channel_resellers["SalesAmount"]
+                    .fill_null(0)
+                    .sum()
+                    .round(0)
+                    .cast(dt.Decimal(13, 2))
+                )
+                .end(),
+                ResellerProfit=ibis.case()
+                .when(channel_resellers.count() == 0, 0)
+                .else_(
+                    (
+                        channel_resellers["SalesAmount"].fill_null(0)
+                        - channel_resellers["TotalProductCost"].fill_null(0)
+                    )
+                    .sum()
+                    .round(0)
+                    .cast(dt.Decimal(13, 2))
+                )
+                .end(),
+                OrderVolume=channel_resellers[sales_order_number].nunique(),
             )
         else:
             current_sales_channel_internet = 0
@@ -853,6 +906,39 @@ def sales_profit_volume(
             previous_profit_channel_internet = 0
             current_volume_channel_internet = 0
             previous_volume_channel_internet = 0
+
+        if input_channel_resellers.value == True:
+             channel_resellers = dscon.sql(f"""
+                SELECT
+                    FiscalYear,
+                    CASE WHEN COUNT(*) = 0 THEN 0
+                        ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2))
+                        END AS ResellerSales,
+                    CASE WHEN COUNT(*) = 0 THEN 0
+                        ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2))
+                        END AS ResellerProfit,
+                    COUNT(DISTINCT {sales_order_number}) AS OrderVolume
+                FROM {table_sales_reseller}
+                JOIN {table_date}
+                ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
+                WHERE {table_date}.FiscalYear IN (
+                    {current_fy},
+                    {previous_fy}
+                    )
+                AND {table_sales_reseller}.{product_key} IN (
+                    SELECT {product_key}
+                    FROM {table_product}
+                    WHERE {product_name} IN ('{selected_products}')
+                )
+                GROUP BY FiscalYear
+                """)
+        else:
+            current_sales_channel_resellers = 0
+            current_profit_channel_resellers = 0
+            previous_sales_channel_resellers = 0
+            previous_profit_channel_resellers = 0
+            current_volume_channel_resellers = 0
+            previous_volume_channel_resellers = 0
         
     current_sales_channel_internet = (
         channel_internet.filter(channel_internet["FiscalYear"] == current_fy)
@@ -897,91 +983,61 @@ def sales_profit_volume(
     if previous_volume_channel_internet is None:
         previous_volume_channel_internet = 0
 
+    current_sales_channel_resellers = (
+        channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
+        .select("ResellerSales")
+        .as_scalar()
+        .execute()
+    )
+    current_profit_channel_resellers = (
+        channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
+        .select("ResellerProfit")
+        .as_scalar()
+        .execute()
+    )
+    current_volume_channel_resellers = (
+        channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
+        .select("OrderVolume")
+        .as_scalar()
+        .execute()
+    )
+    previous_sales_channel_resellers = (
+        channel_resellers.filter(
+            channel_resellers["FiscalYear"] == previous_fy
+        )
+        .select("ResellerSales")
+        .as_scalar()
+        .execute()
+    )
+    previous_profit_channel_resellers = (
+        channel_resellers.filter(
+            channel_resellers["FiscalYear"] == previous_fy
+        )
+        .select("ResellerProfit")
+        .as_scalar()
+        .execute()
+    )
+    previous_volume_channel_resellers = (
+        channel_resellers.filter(
+            channel_resellers["FiscalYear"] == previous_fy
+        )
+        .select("OrderVolume")
+        .as_scalar()
+        .execute()
+    )
+    if previous_sales_channel_resellers is None:
+        previous_sales_channel_resellers = 0
+    if previous_profit_channel_resellers is None:
+        previous_profit_channel_resellers = 0
+    if previous_volume_channel_resellers is None:
+        previous_volume_channel_resellers = 0
 
-        # if input_channel_resellers.value == True:
-        #     if input_data_source.value == "0":
+
+
             
-        
-        #     if input_data_source.value == "1":
-        #         channel_resellers = dscon.sql(f"""
-        #         SELECT
-        #             FiscalYear,
-        #             CASE WHEN COUNT(*) = 0 THEN 0
-        #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2))
-        #                 END AS ResellerSales,
-        #             CASE WHEN COUNT(*) = 0 THEN 0
-        #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2))
-        #                 END AS ResellerProfit,
-        #             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
-        #         FROM {table_sales_reseller}
-        #         JOIN {table_date}
-        #         ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
-        #         WHERE {table_date}.FiscalYear IN (
-        #             {current_fy},
-        #             {previous_fy}
-        #             )
-        #         AND {table_sales_reseller}.{product_key} IN (
-        #             SELECT {product_key}
-        #             FROM {table_product}
-        #             WHERE {product_name} IN ('{selected_products}')
-        #         )
-        #         GROUP BY FiscalYear
-        #         """)
-        #     current_sales_channel_resellers = (
-        #         channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
-        #         .select("ResellerSales")
-        #         .as_scalar()
-        #         .execute()
-        #     )
-        #     current_profit_channel_resellers = (
-        #         channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
-        #         .select("ResellerProfit")
-        #         .as_scalar()
-        #         .execute()
-        #     )
-        #     current_volume_channel_resellers = (
-        #         channel_resellers.filter(channel_resellers["FiscalYear"] == current_fy)
-        #         .select("OrderVolume")
-        #         .as_scalar()
-        #         .execute()
-        #     )
-        #     previous_sales_channel_resellers = (
-        #         channel_resellers.filter(
-        #             channel_resellers["FiscalYear"] == previous_fy
-        #         )
-        #         .select("ResellerSales")
-        #         .as_scalar()
-        #         .execute()
-        #     )
-        #     previous_profit_channel_resellers = (
-        #         channel_resellers.filter(
-        #             channel_resellers["FiscalYear"] == previous_fy
-        #         )
-        #         .select("ResellerProfit")
-        #         .as_scalar()
-        #         .execute()
-        #     )
-        #     previous_volume_channel_resellers = (
-        #         channel_resellers.filter(
-        #             channel_resellers["FiscalYear"] == previous_fy
-        #         )
-        #         .select("OrderVolume")
-        #         .as_scalar()
-        #         .execute()
-        #     )
-        #     if previous_sales_channel_resellers is None:
-        #         previous_sales_channel_resellers = 0
-        #     if previous_profit_channel_resellers is None:
-        #         previous_profit_channel_resellers = 0
-        #     if previous_volume_channel_resellers is None:
-        #         previous_volume_channel_resellers = 0
-        # else:
-        #     current_sales_channel_resellers = 0
-        #     current_profit_channel_resellers = 0
-        #     previous_sales_channel_resellers = 0
-        #     previous_profit_channel_resellers = 0
-        #     current_volume_channel_resellers = 0
-        #     previous_volume_channel_resellers = 0
+         
+  
+   
 
     # current_sales_channel_all = Decimal(
     #     current_sales_channel_internet + current_sales_channel_resellers
