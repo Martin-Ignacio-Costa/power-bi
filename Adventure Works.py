@@ -669,44 +669,73 @@ def input_filters(
 
 
 @app.cell
-def fy_dates(dscon, input_fiscal_year, locale_date, table_date):
+def fy_dates(
+    dscon,
+    input_data_source,
+    input_fiscal_year,
+    locale_date,
+    table_date,
+):
     current_fy = int(input_fiscal_year.value)
     previous_fy = current_fy - 1
 
     # Fiscal year dates
-    fy_min_dates = dscon.sql(f"""
-    SELECT 
-        DayNumberOfMonth AS StartDay,
-        MonthNumberOfYear AS StartMonth,
-        CalendarYear AS StartYear
-    FROM {table_date}
-    WHERE DateKey = (
-        SELECT MIN(DateKey)
+    if input_data_source.value == "0":
+        min_date_key = table_date.filter(table_date["FiscalYear"] == current_fy)["DateKey"].min()
+        max_date_key = table_date.filter(table_date["FiscalYear"] == current_fy)["DateKey"].max()
+    
+        fy_min_dates = (table_date.filter(
+            table_date["DateKey"] == min_date_key)
+                        .select(
+                            table_date["DayNumberOfMonth"].name("StartDay"),
+                            table_date["MonthNumberOfYear"].name("StartMonth"),
+                            table_date["CalendarYear"].name("StartYear"),
+                        )
+        )
+
+        fy_max_dates = (table_date.filter(
+            table_date["DateKey"] == max_date_key)
+                       .select(
+                           table_date["DayNumberOfMonth"].name("EndDay"),
+                           table_date["MonthNumberOfYear"].name("EndMonth"),
+                           table_date["CalendarYear"].name("EndYear"),
+                       )
+       )
+
+    if input_data_source.value == "1":
+        fy_min_dates = dscon.sql(f"""
+        SELECT 
+            DayNumberOfMonth AS StartDay,
+            MonthNumberOfYear AS StartMonth,
+            CalendarYear AS StartYear
         FROM {table_date}
-        WHERE FiscalYear = {current_fy}
-    )
-    """)
-
-    fy_max_dates = dscon.sql(f"""
-    SELECT 
-        DayNumberOfMonth AS EndDay,
-        MonthNumberOfYear AS EndMonth,
-        CalendarYear AS EndYear
-    FROM {table_date}
-    WHERE DateKey = (
-        SELECT MAX(DateKey)
+        WHERE DateKey = (
+            SELECT MIN(DateKey)
+            FROM {table_date}
+            WHERE FiscalYear = {current_fy}
+        )
+        """)
+    
+        fy_max_dates = dscon.sql(f"""
+        SELECT 
+            DayNumberOfMonth AS EndDay,
+            MonthNumberOfYear AS EndMonth,
+            CalendarYear AS EndYear
         FROM {table_date}
-        WHERE FiscalYear = {current_fy}
-    )
-    """)
+        WHERE DateKey = (
+            SELECT MAX(DateKey)
+            FROM {table_date}
+            WHERE FiscalYear = {current_fy}
+        )
+        """)
 
-    fy_start_day = fy_min_dates["StartDay"].execute().iat[0]
-    fy_start_month = fy_min_dates["StartMonth"].execute().iat[0]
-    fy_start_year = fy_min_dates["StartYear"].execute().iat[0]
+    fy_start_day = fy_min_dates["StartDay"].as_scalar().execute()
+    fy_start_month = fy_min_dates["StartMonth"].as_scalar().execute()
+    fy_start_year = fy_min_dates["StartYear"].as_scalar().execute()
 
-    fy_end_day = fy_max_dates["EndDay"].execute().iat[0]
-    fy_end_month = fy_max_dates["EndMonth"].execute().iat[0]
-    fy_end_year = fy_max_dates["EndYear"].execute().iat[0]
+    fy_end_day = fy_max_dates["EndDay"].as_scalar().execute()
+    fy_end_month = fy_max_dates["EndMonth"].as_scalar().execute()
+    fy_end_year = fy_max_dates["EndYear"].as_scalar().execute()
 
     fy_start_date = locale_date(date(fy_start_year, fy_start_month, fy_start_day))
     fy_end_date = locale_date(date(fy_end_year, fy_end_month, fy_end_day))
