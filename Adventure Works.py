@@ -763,54 +763,48 @@ def sales_profit_volume(
     # Channel sales and profit
     if input_data_source.value == "0":
         selected_products = input_product.value
-    
+
         filtered_internet_sales = table_sales_internet.join(
             table_date,
-            table_sales_internet["OrderDateKey"] == table_date["DateKey"]
-        ).filter(
-            table_date["FiscalYear"].isin([current_fy, previous_fy])
-        )
+            table_sales_internet["OrderDateKey"] == table_date["DateKey"],
+        ).filter(table_date["FiscalYear"].isin([current_fy, previous_fy]))
         filtered_products = table_product.filter(
             table_product[product_name].isin(selected_products)
         )
 
-        channel_internet = ibis.memtable(filtered_internet_sales.filter(
-            filtered_internet_sales[product_key].isin(filtered_products[product_key])
-        ))
+        channel_internet = ibis.memtable(
+            filtered_internet_sales.filter(
+                filtered_internet_sales[product_key].isin(
+                    filtered_products[product_key]
+                )
+            )
+        )
 
-        channel_internet = channel_internet.mutate(
+        channel_internet = channel_internet.group_by(["FiscalYear"]).aggregate(
             InternetSales=ibis.case()
             .when(channel_internet.count() == 0, 0)
             .else_(
-                channel_internet["SalesAmount"].fillna(0).sum().round(0).cast(dt.Decimal(13, 2))
+                channel_internet["SalesAmount"]
+                .fill_null(0)
+                .sum()
+                .round(0)
+                .cast(dt.Decimal(13, 2))
             )
             .end(),
             InternetProfit=ibis.case()
             .when(channel_internet.count() == 0, 0)
             .else_(
-                (channel_internet["SalesAmount"].fillna(0) - channel_internet["TotalProductCost"].fillna(0)).sum().round(0).cast(dt.Decimal(13, 2))
+                (
+                    channel_internet["SalesAmount"].fill_null(0)
+                    - channel_internet["TotalProductCost"].fill_null(0)
+                )
+                .sum()
+                .round(0)
+                .cast(dt.Decimal(13, 2))
             )
             .end(),
-            OrderVolume=channel_internet[sales_order_number].nunique()
+            OrderVolume=channel_internet[sales_order_number].nunique(),
         )
-
-        channel_internet
-
-        # channel_internet = channel_internet.group_by(["FiscalYear"]).aggregate(
-        #     InternetSales=ibis.case()
-        #     .when(channel_internet.count() == 0, 0)
-        #     .else_(
-        #     channel_internet["SalesAmount"].fillna(0).sum().round(0).cast(dt.Decimal(13, 2))
-        #     )
-        #     .end(),
-        #     InternetProfit=ibis.case()
-        #     .when(channel_internet.count() == 0, 0)
-        #     .else_(
-        #             (channel_internet["SalesAmount"].fillna(0) - channel_internet["TotalProductCost"].fillna(0).sum())
-        #                 .round(0).cast(dt.Decimal(13, 2))
-        # ).end(),
-        # OrderVolume=channel_internet[sales_order_number].nunique()
-        # )
 
     # if input_data_source.value == "1":
     #     selected_products = "', '".join(
@@ -819,13 +813,13 @@ def sales_profit_volume(
 
     #     if input_channel_internet.value == True:
     #         channel_internet = dscon.sql(f"""
-    #         SELECT 
+    #         SELECT
     #             FiscalYear,
     #             CASE WHEN COUNT(*) = 0 THEN 0
-    #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) 
+    #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2))
     #                 END AS InternetSales,
     #             CASE WHEN COUNT(*) = 0 THEN 0
-    #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
+    #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2))
     #                 END AS InternetProfit,
     #             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
     #         FROM {table_sales_internet}
@@ -833,7 +827,7 @@ def sales_profit_volume(
     #         ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
     #         WHERE {table_date}.FiscalYear IN (
     #             {current_fy},
-    #             {previous_fy} 
+    #             {previous_fy}
     #         )
     #         AND {table_sales_internet}.{product_key} IN (
     #             SELECT {product_key}
@@ -894,20 +888,20 @@ def sales_profit_volume(
 
     #     if input_channel_resellers.value == True:
     #         channel_resellers = dscon.sql(f"""
-    #         SELECT 
+    #         SELECT
     #             FiscalYear,
     #             CASE WHEN COUNT(*) = 0 THEN 0
-    #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2)) 
+    #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2))
     #                 END AS ResellerSales,
     #             CASE WHEN COUNT(*) = 0 THEN 0
-    #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2)) 
+    #                 ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2))
     #                 END AS ResellerProfit,
     #             COUNT(DISTINCT {sales_order_number}) AS OrderVolume
     #         FROM {table_sales_reseller}
     #         JOIN {table_date}
     #         ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
     #         WHERE {table_date}.FiscalYear IN (
-    #             {current_fy}, 
+    #             {current_fy},
     #             {previous_fy}
     #             )
     #         AND {table_sales_reseller}.{product_key} IN (
@@ -1038,12 +1032,6 @@ def sales_profit_volume(
 @app.cell
 def _(channel_internet):
     mo.ui.table(channel_internet)
-    return
-
-
-@app.cell
-def _(channel_internet2):
-    channel_internet2
     return
 
 
