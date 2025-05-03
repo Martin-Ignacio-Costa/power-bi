@@ -17,8 +17,22 @@
       },
       {
         "position": [
-          17,
-          11,
+          0,
+          0,
+          6,
+          2
+        ]
+      },
+      {
+        "position": null
+      },
+      {
+        "position": null
+      },
+      {
+        "position": [
+          0,
+          2,
           6,
           5
         ]
@@ -30,20 +44,6 @@
         "position": null
       },
       {
-        "position": [
-          17,
-          16,
-          6,
-          6
-        ]
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
-      },
-      {
         "position": null
       },
       {
@@ -61,7 +61,7 @@
       {
         "position": [
           0,
-          0,
+          7,
           6,
           16
         ]
@@ -75,52 +75,55 @@
       {
         "position": [
           6,
-          10,
-          7,
+          0,
+          6,
           2
         ]
       },
       {
         "position": [
-          6,
-          0,
-          4,
-          10
-        ]
-      },
-      {
-        "position": [
-          1,
-          18,
-          4,
-          4
-        ]
-      },
-      {
-        "position": [
-          5,
-          18,
-          4,
-          4
-        ],
-        "side": "left"
-      },
-      {
-        "position": [
-          9,
-          18,
-          5,
-          4
-        ],
-        "side": "left"
-      },
-      {
-        "position": [
+          20,
           10,
+          4,
+          10
+        ]
+      },
+      {
+        "position": [
+          6,
+          6,
+          4,
+          4
+        ],
+        "side": "left"
+      },
+      {
+        "position": [
+          6,
+          2,
+          5,
+          3
+        ]
+      },
+      {
+        "position": [
+          6,
+          10,
+          5,
+          4
+        ],
+        "side": "left"
+      },
+      {
+        "position": [
+          19,
           0,
           5,
           10
         ]
+      },
+      {
+        "position": null
       },
       {
         "position": null

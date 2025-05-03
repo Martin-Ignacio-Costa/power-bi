@@ -127,7 +127,7 @@ def language_variations(input_language):
             fy_dates_title = "Ventas entre: "
             sales_millions_label = "Ventas (en millones US$)"
             profit_millions_label = "Ganancias (en millones US$)"
-            volume_thousands_label = "Volúmen (# de pedidos en miles)"
+            volume_thousands_label = "Cantidad de pedidos (en miles)"
 
     # Language-independent variables
     product_category_key = "ProductCategoryKey"
@@ -1103,7 +1103,13 @@ def sales_profit_volume(
 
 @app.cell
 def _(fy_dates_title, fy_end_date, fy_start_date):
-    mo.md(f"""{fy_dates_title} {fy_start_date} - {fy_end_date}""")
+    mo.Html(
+        f"""
+        <h4 style="color: white; background-color: #41A4FF; padding: 5px;">
+            <strong>{fy_dates_title}</strong> {fy_start_date} - {fy_end_date}
+        </h4>
+        """
+    )
     return
 
 
@@ -1115,10 +1121,12 @@ def _(current_sales_channel_all, current_sales_total_title):
 
 @app.cell
 def _(sales_millions, sales_millions_label):
-    mo.md(
+    mo.Html(
         f"""
-        {sales_millions_label}\n
-        {sales_millions}M
+        <div style="background-color: white; color: #41A4FF; padding: 5px;">
+            <strong>{sales_millions_label}</strong><br>
+            {sales_millions}M
+        </div>
         """
     )
     return
@@ -1126,10 +1134,12 @@ def _(sales_millions, sales_millions_label):
 
 @app.cell
 def _(profit_millions, profit_millions_label):
-    mo.md(
+    mo.Html(
         f"""
-        {profit_millions_label}\n
-        {profit_millions}M
+        <div style="background-color: white; color: #41A4FF; padding: 5px;">
+            <strong>{profit_millions_label}</strong><br>
+            {profit_millions}M
+        </div>
         """
     )
     return
@@ -1137,18 +1147,20 @@ def _(profit_millions, profit_millions_label):
 
 @app.cell
 def _(current_volume_thousands, volume_thousands_label):
-    mo.md(
+    mo.Html(
         f"""
-        {volume_thousands_label}\n
-        {current_volume_thousands}K
+        <div style="background-color: white; color: #41A4FF; padding: 5px;">
+            <strong>{volume_thousands_label}</strong><br>
+            {current_volume_thousands}K
+        </div>
         """
     )
     return
 
 
 @app.cell
-def _(current_profit_channel_all, current_profit_total_title):
-    mo.callout(f"{current_profit_total_title} {current_profit_channel_all}")
+def _(Kmo, current_profit_channel_all, current_profit_total_title):
+    Kmo.callout(f"{current_profit_total_title} {current_profit_channel_all}")
     return
 
 
@@ -1162,6 +1174,11 @@ def _():
         <span style="color: red; font-family: Arial; font-size: 20px;">This text is red, Arial, and 20px!</span>
         """
     )
+    return
+
+
+@app.cell
+def _():
     return
 
 
