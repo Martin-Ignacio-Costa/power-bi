@@ -509,8 +509,7 @@ def product_categories(
             .select([product_category_key, product_category_name])
             .distinct()
             .order_by(product_category_key)
-            .execute()
-                        )
+            .execute())
 
     elif input_data_source.value == "1":
         list_category = dscon.sql(f"""
@@ -581,17 +580,12 @@ def product_subcategories(
         value=list_subcategory[f"{product_subcategory_name}"],
         label=input_product_subcategory_label,
     )
-    return input_product_subcategory, selected_category_keys
-
-
-@app.cell
-def _(selected_category_keys):
-    selected_category_keys
-    return
+    return (input_product_subcategory,)
 
 
 @app.cell
 def products(
+    dscon,
     input_data_source,
     input_product_label,
     input_product_subcategory,
@@ -624,19 +618,18 @@ def products(
         )
             .execute())
 
-    selected_subcategory_keys
-    # elif input_data_source.value == "1":
-    #     selected_subcategories = "', '".join(input_product_subcategory.value)
-    #     list_product = dscon.sql(f"""
-    #     SELECT DISTINCT {product_name}, {product_key}
-    #     FROM {table_product}
-    #     WHERE {product_subcategory_key} IN (
-    #         SELECT {product_subcategory_key}
-    #         FROM {table_product_subcategory}
-    #         WHERE {product_subcategory_name} IN ('{selected_subcategories}')
-    #     )
-    #     ORDER BY {product_key}
-    #     """).execute()
+    elif input_data_source.value == "1":
+        selected_subcategories = "', '".join(input_product_subcategory.value)
+        list_product = dscon.sql(f"""
+        SELECT DISTINCT {product_name}, {product_key}
+        FROM {table_product}
+        WHERE {product_subcategory_key} IN (
+            SELECT {product_subcategory_key}
+            FROM {table_product_subcategory}
+            WHERE {product_subcategory_name} IN ('{selected_subcategories}')
+        )
+        ORDER BY {product_key}
+        """).execute()
 
     input_product = mo.ui.multiselect.from_series(
         list_product[f"{product_name}"],
