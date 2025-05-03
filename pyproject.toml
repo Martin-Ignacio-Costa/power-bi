@@ -10,6 +10,7 @@ dependencies = [
     "ibis-framework[mssql]>=10.4.0",
     "marimo[lsp]>=0.13.0",
     "matplotlib>=3.10.1",
+    "pyecharts>=2.0.8",
     "seaborn>=0.13.2",
 ]
 [tool.marimo.experimental]
