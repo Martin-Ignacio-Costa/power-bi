@@ -25,6 +25,7 @@ with app.setup:
     import altair as alt
     import ibis
     import ibis.expr.datatypes as dt
+    from ibis.common.collections import FrozenOrderedDict
     from decimal import Decimal
     from datetime import datetime
     from datetime import date
@@ -773,25 +774,43 @@ def sales_profit_volume(
             table_product[product_name].isin(selected_products)
         )
 
-        channel_internet = filtered_internet_sales.filter(
+        channel_internet = ibis.memtable(filtered_internet_sales.filter(
             filtered_internet_sales[product_key].isin(filtered_products[product_key])
-        )
+        ))
 
-        channel_internet = channel_internet.group_by("FiscalYear").aggregate(
+        channel_internet = channel_internet.mutate(
             InternetSales=ibis.case()
             .when(channel_internet.count() == 0, 0)
             .else_(
-            channel_internet["SalesAmount"].fillna(0).sum().round(0).cast(dt.Decimal(13, 2))
+                channel_internet["SalesAmount"].fillna(0).sum().round(0).cast(dt.Decimal(13, 2))
             )
             .end(),
             InternetProfit=ibis.case()
             .when(channel_internet.count() == 0, 0)
             .else_(
-                    (channel_internet["SalesAmount"].fillna(0) - channel_internet["TotalProductCost"].fillna(0).sum())
-                        .round(0).cast(dt.Decimal(13, 2))
-        ).end(),
-        OrderVolume=channel_internet[sales_order_number].nunique()
+                (channel_internet["SalesAmount"].fillna(0) - channel_internet["TotalProductCost"].fillna(0)).sum().round(0).cast(dt.Decimal(13, 2))
+            )
+            .end(),
+            OrderVolume=channel_internet[sales_order_number].nunique()
         )
+
+        channel_internet
+
+        # channel_internet = channel_internet.group_by(["FiscalYear"]).aggregate(
+        #     InternetSales=ibis.case()
+        #     .when(channel_internet.count() == 0, 0)
+        #     .else_(
+        #     channel_internet["SalesAmount"].fillna(0).sum().round(0).cast(dt.Decimal(13, 2))
+        #     )
+        #     .end(),
+        #     InternetProfit=ibis.case()
+        #     .when(channel_internet.count() == 0, 0)
+        #     .else_(
+        #             (channel_internet["SalesAmount"].fillna(0) - channel_internet["TotalProductCost"].fillna(0).sum())
+        #                 .round(0).cast(dt.Decimal(13, 2))
+        # ).end(),
+        # OrderVolume=channel_internet[sales_order_number].nunique()
+        # )
 
     # if input_data_source.value == "1":
     #     selected_products = "', '".join(
@@ -1013,6 +1032,18 @@ def sales_profit_volume(
     #     locale_decimal(current_sales_channel_all),
     #     locale_decimal(current_profit_channel_all),
     # )
+    return (channel_internet,)
+
+
+@app.cell
+def _(channel_internet):
+    mo.ui.table(channel_internet)
+    return
+
+
+@app.cell
+def _(channel_internet2):
+    channel_internet2
     return
 
 
