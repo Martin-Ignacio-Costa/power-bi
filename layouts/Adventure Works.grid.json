@@ -82,14 +82,6 @@
       },
       {
         "position": [
-          20,
-          10,
-          4,
-          10
-        ]
-      },
-      {
-        "position": [
           6,
           6,
           4,
@@ -113,20 +105,6 @@
           4
         ],
         "side": "left"
-      },
-      {
-        "position": [
-          19,
-          0,
-          5,
-          10
-        ]
-      },
-      {
-        "position": null
-      },
-      {
-        "position": null
       }
     ]
   }

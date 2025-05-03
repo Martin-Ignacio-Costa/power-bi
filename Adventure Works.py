@@ -135,8 +135,6 @@ def language_variations(input_language):
     product_key = "ProductKey"
     sales_order_number = "SalesOrderNumber"
     return (
-        current_profit_total_title,
-        current_sales_total_title,
         fy_dates_title,
         input_channel_internet_label,
         input_channel_resellers_label,
@@ -1092,13 +1090,7 @@ def sales_profit_volume(
         locale_decimal(current_sales_channel_all),
         locale_decimal(current_profit_channel_all),
     )
-    return (
-        current_profit_channel_all,
-        current_sales_channel_all,
-        current_volume_thousands,
-        profit_millions,
-        sales_millions,
-    )
+    return current_volume_thousands, profit_millions, sales_millions
 
 
 @app.cell
@@ -1110,12 +1102,6 @@ def _(fy_dates_title, fy_end_date, fy_start_date):
         </h4>
         """
     )
-    return
-
-
-@app.cell
-def _(current_sales_channel_all, current_sales_total_title):
-    mo.callout(f"{current_sales_total_title} {current_sales_channel_all}")
     return
 
 
@@ -1155,30 +1141,6 @@ def _(current_volume_thousands, volume_thousands_label):
         </div>
         """
     )
-    return
-
-
-@app.cell
-def _(Kmo, current_profit_channel_all, current_profit_total_title):
-    Kmo.callout(f"{current_profit_total_title} {current_profit_channel_all}")
-    return
-
-
-@app.cell
-def _():
-    hello_world = mo.Html("<h2>Hello, World</h2>")
-    mo.Html(
-        f"""
-        <h1>Hello, Universe!</h1>
-        {hello_world}
-        <span style="color: red; font-family: Arial; font-size: 20px;">This text is red, Arial, and 20px!</span>
-        """
-    )
-    return
-
-
-@app.cell
-def _():
     return
 
 
