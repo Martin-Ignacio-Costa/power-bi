@@ -770,7 +770,7 @@ def sales_profit_volume(
     if input_data_source.value == "0":
         selected_products = input_product.value
 
-        if input_channel_internet.value == True:
+        if input_channel_internet.value:
             filtered_internet_sales = table_sales_internet.join(
                 table_date,
                 table_sales_internet["OrderDateKey"] == table_date["DateKey"],
@@ -779,11 +779,9 @@ def sales_profit_volume(
                 table_product[product_name].isin(selected_products)
             )
 
-            channel_internet = (
-                filtered_internet_sales.filter(
-                    filtered_internet_sales[product_key].isin(
-                        filtered_products[product_key]
-                    )
+            channel_internet = filtered_internet_sales.filter(
+                filtered_internet_sales[product_key].isin(
+                    filtered_products[product_key]
                 )
             )
 
@@ -820,7 +818,7 @@ def sales_profit_volume(
             current_volume_channel_internet = 0
             previous_volume_channel_internet = 0
 
-        if input_channel_internet.value == True:
+        if input_channel_internet.value:
             filtered_reseller_sales = table_sales_reseller.join(
                 table_date,
                 table_sales_reseller["OrderDateKey"] == table_date["DateKey"],
@@ -829,15 +827,15 @@ def sales_profit_volume(
                 table_product[product_name].isin(selected_products)
             )
 
-            channel_resellers = (
-                filtered_reseller_sales.filter(
-                    filtered_reseller_sales[product_key].isin(
-                        filtered_products[product_key]
-                    )
+            channel_resellers = filtered_reseller_sales.filter(
+                filtered_reseller_sales[product_key].isin(
+                    filtered_products[product_key]
                 )
             )
 
-            channel_resellers = channel_resellers.group_by(["FiscalYear"]).aggregate(
+            channel_resellers = channel_resellers.group_by(
+                ["FiscalYear"]
+            ).aggregate(
                 ResellerSales=ibis.case()
                 .when(channel_resellers.count() == 0, 0)
                 .else_(
@@ -875,7 +873,7 @@ def sales_profit_volume(
             product.replace("'", "''") for product in input_product.value
         )
 
-        if input_channel_internet.value == True:
+        if input_channel_internet.value:
             channel_internet = dscon.sql(f"""
                 SELECT
                     FiscalYear,
@@ -908,8 +906,8 @@ def sales_profit_volume(
             current_volume_channel_internet = 0
             previous_volume_channel_internet = 0
 
-        if input_channel_resellers.value == True:
-             channel_resellers = dscon.sql(f"""
+        if input_channel_resellers.value:
+            channel_resellers = dscon.sql(f"""
                 SELECT
                     FiscalYear,
                     CASE WHEN COUNT(*) = 0 THEN 0
@@ -1003,25 +1001,19 @@ def sales_profit_volume(
         .execute()
     )
     previous_sales_channel_resellers = (
-        channel_resellers.filter(
-            channel_resellers["FiscalYear"] == previous_fy
-        )
+        channel_resellers.filter(channel_resellers["FiscalYear"] == previous_fy)
         .select("ResellerSales")
         .as_scalar()
         .execute()
     )
     previous_profit_channel_resellers = (
-        channel_resellers.filter(
-            channel_resellers["FiscalYear"] == previous_fy
-        )
+        channel_resellers.filter(channel_resellers["FiscalYear"] == previous_fy)
         .select("ResellerProfit")
         .as_scalar()
         .execute()
     )
     previous_volume_channel_resellers = (
-        channel_resellers.filter(
-            channel_resellers["FiscalYear"] == previous_fy
-        )
+        channel_resellers.filter(channel_resellers["FiscalYear"] == previous_fy)
         .select("OrderVolume")
         .as_scalar()
         .execute()
@@ -1113,47 +1105,39 @@ def _(fy_dates_title, fy_end_date, fy_start_date):
 
 
 @app.cell
-def _(sales_millions, sales_millions_label):
-    mo.Html(
-        f"""
-        <div style="background-color: white; color: #41A4FF; padding: 5px;">
-            <strong>{sales_millions_label}</strong><br>
-            {sales_millions}M
-        </div>
-        """
-    )
-    return
-
-
-@app.cell
-def _(profit_millions, profit_millions_label):
-    mo.Html(
-        f"""
-        <div style="background-color: white; color: #41A4FF; padding: 5px;">
-            <strong>{profit_millions_label}</strong><br>
-            {profit_millions}M
-        </div>
-        """
-    )
-    return
-
-
-@app.cell
-def _(current_volume_thousands, volume_thousands_label):
-    mo.Html(
-        f"""
-        <div style="background-color: white; color: #41A4FF; padding: 5px;">
-            <strong>{volume_thousands_label}</strong><br>
-            {current_volume_thousands}K
-        </div>
-        """ 
+def _(
+    current_volume_thousands,
+    profit_millions,
+    profit_millions_label,
+    sales_millions,
+    sales_millions_label,
+    volume_thousands_label,
+):
+    mo.hstack(
+        [
+            mo.stat(
+                value=f"{sales_millions}M",
+                label=sales_millions_label,
+                # bordered=True
+            ),
+            mo.stat(
+                value=f"{profit_millions}M",
+                label=profit_millions_label,
+                # bordered=True
+            ),
+            mo.stat(
+                value=f"{current_volume_thousands}K",
+                label=volume_thousands_label,
+                # bordered=True
+            ),
+        ],
     )
     return
 
 
 @app.cell
 def _(filtered_internet_sales):
-    current_year_sales = filtered_internet_sales 
+    current_year_sales = filtered_internet_sales
     return (current_year_sales,)
 
 
@@ -1165,7 +1149,6 @@ def _(current_year_sales):
 
 @app.cell
 def _(current_year_sales):
-
     # # Group sales by date and sum SalesAmount
     # sales_by_date = current_year_sales.group_by("FullDateAlternateKey").aggregate(
     #     total_sales=current_year_sales["SalesAmount"].sum()
@@ -1180,23 +1163,26 @@ def _(current_year_sales):
 
 
     # Extract the month and year, then group by them
-    sales_by_month = current_year_sales.mutate(
-        Year=current_year_sales["FullDateAlternateKey"].year(),
-        Month=current_year_sales["FullDateAlternateKey"].month()
-    ).group_by(["Year", "Month"]).aggregate(
-        total_sales=current_year_sales["SalesAmount"].sum()
+    sales_by_month = (
+        current_year_sales.mutate(
+            Year=current_year_sales["FullDateAlternateKey"].year(),
+            Month=current_year_sales["FullDateAlternateKey"].month(),
+        )
+        .group_by(["Year", "Month"])
+        .aggregate(total_sales=current_year_sales["SalesAmount"].sum())
     )
 
     # Convert Ibis result to Pandas DataFrame for visualization
     sales_df = sales_by_month.execute()
-    sales_df["YearMonth"] = pd.to_datetime(sales_df[["Year", "Month"]].astype(str).agg("-".join, axis=1))  # Create Year-Month column
+    sales_df["YearMonth"] = pd.to_datetime(
+        sales_df[["Year", "Month"]].astype(str).agg("-".join, axis=1)
+    )  # Create Year-Month column
     sales_df = sales_df.sort_values("YearMonth")  # Sort for proper plotting
     return (sales_df,)
 
 
 @app.cell
 def _(sales_df):
-
     # # Create the area chart
     # chart = (
     #     alt.Chart(sales_df)
@@ -1213,23 +1199,39 @@ def _(sales_df):
     sales_df["total_sales"] = sales_df["total_sales"].astype(float)
 
     # Create a custom ordering list for fiscal year (July to June)
-    fiscal_months = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+    fiscal_months = [
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+    ]
 
     # Extract month names for x-axis labeling
-    sales_df["Month"] = sales_df["YearMonth"].dt.strftime("%b")  # Convert dates to abbreviated months (Jul, Aug, etc.)
+    sales_df["Month"] = sales_df["YearMonth"].dt.strftime(
+        "%b"
+    )  # Convert dates to abbreviated months (Jul, Aug, etc.)
 
     # Create the area chart with fiscal year ordering
     chart = (
         alt.Chart(sales_df)
         .mark_area(color="#41A4FF", opacity=0.5)  # Light blue fill
         .encode(
-            x=alt.X("Month:N", title="Month", sort=fiscal_months),  # Enforce custom fiscal order
+            x=alt.X(
+                "Month:N", title="Month", sort=fiscal_months
+            ),  # Enforce custom fiscal order
             y=alt.Y("total_sales:Q", title="Total Sales Amount"),
-            tooltip=["Month:N", "total_sales:Q"]
+            tooltip=["Month:N", "total_sales:Q"],
         )
         .properties(title="Fiscal Year Sales Trend (July - June)")
     )
-
     return (chart,)
 
 
