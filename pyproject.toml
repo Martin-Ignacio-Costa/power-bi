@@ -7,11 +7,11 @@ requires-python = ">=3.13"
 dependencies = [
     "altair>=5.5.0",
     "duckdb>=1.2.2",
-    "ibis-framework[mssql]>=10.4.0",
+    "ibis-framework[mssql,postgres]>=10.4.0",
     "marimo[lsp]>=0.13.0",
     "matplotlib>=3.10.1",
-    "pyecharts>=2.0.8",
-    "seaborn>=0.13.2",
+    "psycopg[binary]>=3.2.9",
+    "pyfuze>=0.5.2",
 ]
 [tool.marimo.experimental]
 lsp = true

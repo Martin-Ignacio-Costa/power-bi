@@ -6,12 +6,13 @@
 #     "ibis-framework[mssql]==10.5.0",
 #     "marimo",
 #     "pandas==2.2.3",
+#     "psycopg[binary]==3.2.9",
 # ]
 # ///
 
 import marimo
 
-__generated_with = "0.13.3"
+__generated_with = "0.13.10"
 app = marimo.App(
     width="medium",
     app_title="Adventure Works Sales",
@@ -27,9 +28,7 @@ with app.setup:
     import ibis
     import ibis.expr.datatypes as dt
     import pandas as pd
-    from ibis.common.collections import FrozenOrderedDict
     from decimal import Decimal
-    from datetime import datetime
     from datetime import date
     import locale
 
@@ -166,6 +165,7 @@ def _(input_data_source_label):
         options={
             "CSV": "0",
             "SQL": "1",
+            "Supabase": "2",
         },
         value="CSV",
         label=input_data_source_label,
@@ -426,6 +426,15 @@ def con_settings(input_data_source):
         qq_table_sales_internet = dscon.sql(
             f"SELECT * FROM {table_sales_internet}"
         )
+
+    elif input_data_source.value == "2":
+        dscon = ibis.postgres.connect(
+            user=os.environ["SUPABASE_USER"],
+            password=os.environ["SUPABASE_PASS"],
+            host=os.environ["SUPABASE_HOST"],
+            database=os.environ["SUPABASE_DB"],
+            port=os.environ["SUPABASE_PORT"],
+        )
     return (
         dscon,
         table_date,
@@ -435,6 +444,12 @@ def con_settings(input_data_source):
         table_sales_internet,
         table_sales_reseller,
     )
+
+
+@app.cell
+def _(dscon):
+    dscon.sql("SELECT * FROM 'test'")
+    return
 
 
 @app.cell
