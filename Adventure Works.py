@@ -423,27 +423,28 @@ def con_settings(input_data_source):
         # Dimension tables
         con.create_table("DimDate", dscon.table("DimDate"))
         con.insert("DimDate", dscon.table("DimDate").execute())
-        table_date = "DimDate"
 
         con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
         con.insert("DimProductCategory", dscon.table("DimProductCategory").execute())
-        table_product_category = "DimProductCategory"
 
         con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
         con.insert("DimProductSubcategory", dscon.table("DimProductSubcategory").execute())
-        table_product_subcategory = "DimProductSubcategory"
 
         con.create_table("DimProduct", dscon.table("DimProduct"))
         con.insert("DimProduct", dscon.table("DimProduct").execute())
-        table_product = "DimProduct"
 
-        # # Fact tables
+        # Fact tables
         con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
         con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())
-        table_sales_reseller = "FactResellerSales"
 
         con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
         con.insert("FactInternetSales", dscon.table("FactInternetSales").execute())
+
+        table_date = "DimDate"
+        table_product_category = "DimProductCategory"
+        table_product_subcategory = "DimProductSubcategory"
+        table_product = "DimProduct"
+        table_sales_reseller = "FactResellerSales"
         table_sales_internet = "FactInternetSales"
 
         # Quick queries for data exploration
