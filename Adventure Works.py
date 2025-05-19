@@ -32,31 +32,6 @@ with app.setup:
     from datetime import date
     import locale
 
-
-@app.cell
-def functions(input_language):
-    def locale_decimal(value):
-        """
-        Transforms a numeric value into a "VARCHAR" formatted as a decimal using the corresponding regional thousands and decimals separators
-        """
-        if hasattr(value, "iloc"):
-            value = value.iloc[0]
-        return locale.format_string("%.2f", value, grouping=True)
-
-
-    def locale_date(date):
-        """
-        Converts a date into a "VARCHAR" formatted for the regional configuration
-        """
-        if input_language.value == "0":
-            return date.strftime("%m/%d/%Y")
-        elif input_language.value == "1":
-            return date.strftime("%d/%m/%Y")
-    return locale_date, locale_decimal
-
-
-@app.cell
-def language_settings():
     # Language settings
     input_language = mo.ui.dropdown(
         options={
@@ -66,17 +41,37 @@ def language_settings():
         value="English / Inglés",
         label="<strong>Language / Idioma: </strong>",
     )
-    return (input_language,)
+
+
+@app.function
+def locale_decimal(value):
+    """
+    Transforms a numeric value into a "VARCHAR" formatted as a decimal using the corresponding regional thousands and decimals separators
+    """
+    if hasattr(value, "iloc"):
+        value = value.iloc[0]
+    return locale.format_string("%.2f", value, grouping=True)
+
+
+@app.function
+def locale_date(date):
+    """
+    Converts a date into a "VARCHAR" formatted for the regional configuration
+    """
+    if input_language.value == "0":
+        return date.strftime("%m/%d/%Y")
+    elif input_language.value == "1":
+        return date.strftime("%d/%m/%Y")
 
 
 @app.cell
-def _(input_language):
+def _():
     input_language
     return
 
 
 @app.cell
-def language_variations(input_language):
+def language_variations():
     # Label variations for different languages
 
     match input_language.value:
@@ -765,13 +760,7 @@ def _(DimDate, con):
 
 
 @app.cell
-def fy_dates(
-    con,
-    input_data_source,
-    input_fiscal_year,
-    locale_date,
-    table_date,
-):
+def fy_dates(con, input_data_source, input_fiscal_year, table_date):
     current_fy = int(input_fiscal_year.value)
     previous_fy = current_fy - 1
 
@@ -846,7 +835,6 @@ def sales_profit_volume(
     input_channel_resellers,
     input_data_source,
     input_product,
-    locale_decimal,
     previous_fy,
     product_key,
     product_name,
