@@ -424,15 +424,15 @@ def con_settings(input_data_source):
         table_date = con.create_table("DimDate", dscon.table("DimDate"))
         con.insert("DimDate", dscon.table("DimDate").execute())
         table_date = "DimDate"
-    
+
         table_product_category = con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
         con.insert("DimProductCategory", dscon.table("DimProductCategory").execute())
         table_product_category = "DimProductCategory"
-    
+
         table_product_subcategory = con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
         con.insert("DimProductSubcategory", dscon.table("DimProductSubcategory").execute())
         table_product_subcategory = "DimProductSubcategory"
-    
+
         table_product = con.create_table("DimProduct", dscon.table("DimProduct"))
         con.insert("DimProduct", dscon.table("DimProduct").execute())
         table_product = "DimProduct"
@@ -441,7 +441,7 @@ def con_settings(input_data_source):
         table_sales_reseller = con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
         con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())
         table_sales_reseller = "FactResellerSales"
-    
+
         table_sales_internet = con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
         con.insert("FactInternetSales", dscon.table("FactInternetSales").execute())
         table_sales_internet = "FactInternetSales"
@@ -478,7 +478,6 @@ def con_settings(input_data_source):
         csv_table_product_category,
         csv_table_product_subcategory,
         csv_table_reseller_sales,
-        dscon,
         table_date,
         table_product,
         table_product_category,
@@ -502,7 +501,7 @@ def _(
 ):
     mo.stop(not input_refresh_source.value)
 
-    if input_data_source.value == "1":
+    if input_data_source.value == "0":
         con.drop_table("DimDate")
         con.drop_table("DimProductCategory")
         con.drop_table("DimProductSubcategory")
@@ -672,7 +671,7 @@ def product_subcategories(
 
 @app.cell
 def products(
-    dscon,
+    con,
     input_data_source,
     input_product_label,
     input_product_subcategory,
@@ -706,15 +705,15 @@ def products(
 
     elif input_data_source.value == "1":
         selected_subcategories = "', '".join(input_product_subcategory.value)
-        list_product = dscon.sql(f"""
-        SELECT DISTINCT {product_name}, {product_key}
-        FROM {table_product}
-        WHERE {product_subcategory_key} IN (
-            SELECT {product_subcategory_key}
-            FROM {table_product_subcategory}
-            WHERE {product_subcategory_name} IN ('{selected_subcategories}')
+        list_product = con.sql(f"""
+        SELECT DISTINCT "{product_name}", "{product_key}"
+        FROM "{table_product}"
+        WHERE "{product_subcategory_key}" IN (
+            SELECT "{product_subcategory_key}"
+            FROM "{table_product_subcategory}"
+            WHERE "{product_subcategory_name}" IN ('{selected_subcategories}')
         )
-        ORDER BY {product_key}
+        ORDER BY "{product_key}"
         """).execute()
 
     input_product = mo.ui.multiselect.from_series(
@@ -756,7 +755,7 @@ def input_filters(
 
 @app.cell
 def fy_dates(
-    dscon,
+    con,
     input_data_source,
     input_fiscal_year,
     locale_date,
@@ -791,29 +790,29 @@ def fy_dates(
         )
 
     if input_data_source.value == "1":
-        fy_min_dates = dscon.sql(f"""
+        fy_min_dates = con.sql(f"""
         SELECT 
-            DayNumberOfMonth AS StartDay,
-            MonthNumberOfYear AS StartMonth,
-            CalendarYear AS StartYear
-        FROM {table_date}
-        WHERE DateKey = (
-            SELECT MIN(DateKey)
-            FROM {table_date}
-            WHERE FiscalYear = {current_fy}
+            "DayNumberOfMonth" AS "StartDay",
+            "MonthNumberOfYear" AS "StartMonth",
+            "CalendarYear" AS "StartYear"
+        FROM "{table_date}"
+        WHERE "DateKey" = (
+            SELECT MIN("DateKey")
+            FROM "{table_date}"
+            WHERE "FiscalYear" = '{current_fy}'
         )
         """)
 
-        fy_max_dates = dscon.sql(f"""
+        fy_max_dates = con.sql(f"""
         SELECT 
-            DayNumberOfMonth AS EndDay,
-            MonthNumberOfYear AS EndMonth,
-            CalendarYear AS EndYear
-        FROM {table_date}
-        WHERE DateKey = (
-            SELECT MAX(DateKey)
-            FROM {table_date}
-            WHERE FiscalYear = {current_fy}
+            "DayNumberOfMonth" AS "EndDay",
+            "MonthNumberOfYear" AS "EndMonth",
+            "CalendarYear" AS "EndYear"
+        FROM "{table_date}"
+        WHERE "DateKey" = (
+            SELECT MAX("DateKey")
+            FROM "{table_date}"
+            WHERE "FiscalYear" = '{current_fy}'
         )
         """)
 
@@ -832,8 +831,8 @@ def fy_dates(
 
 @app.cell
 def sales_profit_volume(
+    con,
     current_fy,
-    dscon,
     input_channel_internet,
     input_channel_resellers,
     input_data_source,
@@ -956,29 +955,29 @@ def sales_profit_volume(
         )
 
         if input_channel_internet.value:
-            channel_internet = dscon.sql(f"""
+            channel_internet = con.sql(f"""
                 SELECT
-                    FiscalYear,
+                    "FiscalYear",
                     CASE WHEN COUNT(*) = 0 THEN 0
-                        ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2))
-                        END AS InternetSales,
+                        ELSE CAST(ROUND(SUM(COALESCE("SalesAmount", 0)), 0) AS DECIMAL(13, 2))
+                        END AS "InternetSales",
                     CASE WHEN COUNT(*) = 0 THEN 0
-                        ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2))
-                        END AS InternetProfit,
-                    COUNT(DISTINCT {sales_order_number}) AS OrderVolume
-                FROM {table_sales_internet}
-                JOIN {table_date}
-                ON {table_sales_internet}.OrderDateKey = {table_date}.DateKey
-                WHERE {table_date}.FiscalYear IN (
-                    {current_fy},
-                    {previous_fy}
+                        ELSE CAST(ROUND(SUM(COALESCE("SalesAmount", 0) - COALESCE("TotalProductCost", 0)), 0) AS DECIMAL(13, 2))
+                        END AS "InternetProfit",
+                    COUNT(DISTINCT "{sales_order_number}") AS "OrderVolume"
+                FROM "{table_sales_internet}"
+                JOIN "{table_date}"
+                ON "{table_sales_internet}"."OrderDateKey" = "{table_date}"."DateKey"
+                WHERE "{table_date}"."FiscalYear" IN (
+                    '{current_fy}',
+                    '{previous_fy}'
                 )
-                AND {table_sales_internet}.{product_key} IN (
-                    SELECT {product_key}
-                    FROM {table_product}
-                    WHERE {product_name} IN ('{selected_products}')
+                AND "{table_sales_internet}"."{product_key}" IN (
+                    SELECT "{product_key}"
+                    FROM "{table_product}"
+                    WHERE "{product_name}" IN ('{selected_products}')
                 )
-                GROUP BY FiscalYear
+                GROUP BY "FiscalYear"
                 """)
         else:
             current_sales_channel_internet = 0
@@ -989,29 +988,29 @@ def sales_profit_volume(
             previous_volume_channel_internet = 0
 
         if input_channel_resellers.value:
-            channel_resellers = dscon.sql(f"""
+            channel_resellers = con.sql(f"""
                 SELECT
-                    FiscalYear,
+                    "FiscalYear",
                     CASE WHEN COUNT(*) = 0 THEN 0
-                        ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0)), 0) AS DECIMAL(13, 2))
-                        END AS ResellerSales,
+                        ELSE CAST(ROUND(SUM(COALESCE("SalesAmount", 0)), 0) AS DECIMAL(13, 2))
+                        END AS "ResellerSales",
                     CASE WHEN COUNT(*) = 0 THEN 0
-                        ELSE CAST(ROUND(SUM(COALESCE(SalesAmount, 0) - COALESCE(TotalProductCost, 0)), 0) AS DECIMAL(13, 2))
-                        END AS ResellerProfit,
-                    COUNT(DISTINCT {sales_order_number}) AS OrderVolume
-                FROM {table_sales_reseller}
-                JOIN {table_date}
-                ON {table_sales_reseller}.OrderDateKey = {table_date}.DateKey
-                WHERE {table_date}.FiscalYear IN (
-                    {current_fy},
-                    {previous_fy}
+                        ELSE CAST(ROUND(SUM(COALESCE("SalesAmount", 0) - COALESCE("TotalProductCost", 0)), 0) AS DECIMAL(13, 2))
+                        END AS "ResellerProfit",
+                    COUNT(DISTINCT "{sales_order_number}") AS "OrderVolume"
+                FROM "{table_sales_reseller}"
+                JOIN "{table_date}"
+                ON "{table_sales_reseller}"."OrderDateKey" = "{table_date}"."DateKey"
+                WHERE "{table_date}".FiscalYear IN (
+                    '{current_fy}',
+                    '{previous_fy}'
                     )
-                AND {table_sales_reseller}.{product_key} IN (
-                    SELECT {product_key}
-                    FROM {table_product}
-                    WHERE {product_name} IN ('{selected_products}')
+                AND "{table_sales_reseller}"."{product_key}" IN (
+                    SELECT "{product_key}"
+                    FROM "{table_product}"
+                    WHERE "{product_name}" IN ('{selected_products}')
                 )
-                GROUP BY FiscalYear
+                GROUP BY "FiscalYear"
                 """)
         else:
             current_sales_channel_resellers = 0
