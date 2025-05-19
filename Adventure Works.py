@@ -642,16 +642,6 @@ def product_subcategories(
     elif input_data_source.value == "1":
         selected_categories = "', '".join(input_product_category.value)
 
-        # list_subcategory = con.sql(f"""
-        # SELECT DISTINCT "{product_subcategory_name}", "{product_subcategory_key}"
-        # FROM "{table_product_subcategory}"
-        # WHERE "{product_category_key}" IN (
-        #     SELECT "{product_category_key}"
-        #     FROM "{table_product_category}"
-        #     WHERE "{product_category_name}" IN ('{selected_categories}')
-        # )
-        # ORDER BY "{product_subcategory_key}"
-        # """).execute()
         list_subcategory = con.sql(f"""
         SELECT 
             DISTINCT "{product_subcategory_name}",
@@ -708,13 +698,13 @@ def products(
     elif input_data_source.value == "1":
         selected_subcategories = "', '".join(input_product_subcategory.value)
         list_product = con.sql(f"""
-        SELECT DISTINCT "{product_name}", "{product_key}"
-        FROM "{table_product}"
-        WHERE "{product_subcategory_key}" IN (
-            SELECT "{product_subcategory_key}"
-            FROM "{table_product_subcategory}"
-            WHERE "{product_subcategory_name}" IN ('{selected_subcategories}')
-        )
+        SELECT
+            DISTINCT "{product_name}",
+            "{product_key}"
+        FROM "{table_product}" AS "p"
+        JOIN "{table_product_subcategory}" AS "ps"
+            ON "p"."{product_subcategory_key}" = "ps"."{product_subcategory_key}"
+        WHERE "{product_subcategory_name}" IN ('{selected_subcategories}')
         ORDER BY "{product_key}"
         """).execute()
 
@@ -751,6 +741,25 @@ def input_filters(
         ],
         align="start",
         justify="start",
+    )
+    return
+
+
+@app.cell
+def _(DimDate, con):
+    _df = mo.sql(
+        f"""
+        SELECT 
+            "DateKey",
+            "DayNumberOfMonth",
+            "MonthNumberOfYear",
+            "CalendarYear"
+        FROM "DimDate"
+        WHERE "FiscalYear" = '2018'
+        ORDER BY "DateKey" ASC
+        LIMIT 1;
+        """,
+        engine=con
     )
     return
 
@@ -794,28 +803,26 @@ def fy_dates(
     if input_data_source.value == "1":
         fy_min_dates = con.sql(f"""
         SELECT 
+            "DateKey",
             "DayNumberOfMonth" AS "StartDay",
             "MonthNumberOfYear" AS "StartMonth",
             "CalendarYear" AS "StartYear"
         FROM "{table_date}"
-        WHERE "DateKey" = (
-            SELECT MIN("DateKey")
-            FROM "{table_date}"
-            WHERE "FiscalYear" = '{current_fy}'
-        )
+        WHERE "FiscalYear" = '{current_fy}'
+        ORDER BY "DateKey" ASC
+        LIMIT 1;
         """)
 
         fy_max_dates = con.sql(f"""
         SELECT 
+            "DateKey",
             "DayNumberOfMonth" AS "EndDay",
             "MonthNumberOfYear" AS "EndMonth",
             "CalendarYear" AS "EndYear"
         FROM "{table_date}"
-        WHERE "DateKey" = (
-            SELECT MAX("DateKey")
-            FROM "{table_date}"
-            WHERE "FiscalYear" = '{current_fy}'
-        )
+        WHERE "FiscalYear" = '{current_fy}'
+        ORDER BY "DateKey" DESC
+        LIMIT 1;
         """)
 
     fy_start_day = fy_min_dates["StartDay"].as_scalar().execute()
