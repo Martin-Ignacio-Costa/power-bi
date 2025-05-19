@@ -84,6 +84,7 @@ def language_variations(input_language):
         case "0":
             locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
             input_data_source_label = "Data source: "
+            input_data_refresh_label = "Refresh data"
             input_fiscal_year_label = "<strong>Fiscal Year: </strong>"
             input_sales_channel_title = (
                 "<strong>Filter sales channels by: </strong>"
@@ -110,6 +111,7 @@ def language_variations(input_language):
             thousands_separator = "."
             decimal_separator = ","
             input_data_source_label = "Orígen datos: "
+            input_data_refresh_label = "Refrescar datos"
             input_fiscal_year_label = "<strong>Año Fiscal: </strong>"
             input_sales_channel_title = (
                 "<strong>Filtrar canales de venta por: </strong>"
@@ -139,6 +141,7 @@ def language_variations(input_language):
         fy_dates_title,
         input_channel_internet_label,
         input_channel_resellers_label,
+        input_data_refresh_label,
         input_data_source_label,
         input_fiscal_year_label,
         input_product_category_label,
@@ -160,7 +163,7 @@ def language_variations(input_language):
 
 
 @app.cell
-def _(input_data_source_label):
+def _(input_data_refresh_label, input_data_source_label):
     input_data_source = mo.ui.radio(
         options={
             "CSV": "0",
@@ -170,12 +173,22 @@ def _(input_data_source_label):
         value="CSV",
         label=input_data_source_label,
     )
-    return (input_data_source,)
+
+    input_refresh_source = mo.ui.run_button(
+        label=input_data_refresh_label,
+    )
+    return input_data_source, input_refresh_source
 
 
 @app.cell
 def _(input_data_source):
     input_data_source
+    return
+
+
+@app.cell
+def _(input_refresh_source):
+    input_refresh_source
     return
 
 
@@ -196,7 +209,7 @@ def con_settings(input_data_source):
     reseller_sales_csv = rf"{csv_path}\ResellerSales.csv"
 
     if input_data_source.value == "0":
-        dscon = con
+        # dscon = con
 
         csv_table_date = con.read_csv(
             date_csv,
@@ -376,18 +389,18 @@ def con_settings(input_data_source):
             },
         )
 
-        table_date = dscon.create_table("DimDate", csv_table_date)
-        table_product_category = dscon.create_table(
+        table_date = con.create_table("DimDate", csv_table_date)
+        table_product_category = con.create_table(
             "DimProductCategory", csv_table_product_category
         )
-        table_product_subcategory = dscon.create_table(
+        table_product_subcategory = con.create_table(
             "DimProductSubcategory", csv_table_product_subcategory
         )
-        table_product = dscon.create_table("DimProduct", csv_table_product)
-        table_sales_reseller = dscon.create_table(
+        table_product = con.create_table("DimProduct", csv_table_product)
+        table_sales_reseller = con.create_table(
             "FactResellerSales", csv_table_reseller_sales
         )
-        table_sales_internet = dscon.create_table(
+        table_sales_internet = con.create_table(
             "FactInternetSales", csv_table_internet_sales
         )
         # table_category_subcategory_product = con.create_table(
@@ -408,30 +421,46 @@ def con_settings(input_data_source):
         )
 
         # Dimension tables
+        table_date = con.create_table("DimDate", dscon.table("DimDate"))
+        con.insert("DimDate", dscon.table("DimDate").execute())
         table_date = "DimDate"
+    
+        table_product_category = con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
+        con.insert("DimProductCategory", dscon.table("DimProductCategory").execute())
         table_product_category = "DimProductCategory"
+    
+        table_product_subcategory = con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
+        con.insert("DimProductSubcategory", dscon.table("DimProductSubcategory").execute())
         table_product_subcategory = "DimProductSubcategory"
+    
+        table_product = con.create_table("DimProduct", dscon.table("DimProduct"))
+        con.insert("DimProduct", dscon.table("DimProduct").execute())
         table_product = "DimProduct"
 
-        # Fact tables
+        # # Fact tables
+        table_sales_reseller = con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
+        con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())
         table_sales_reseller = "FactResellerSales"
+    
+        table_sales_internet = con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
+        con.insert("FactInternetSales", dscon.table("FactInternetSales").execute())
         table_sales_internet = "FactInternetSales"
 
         # Quick queries for data exploration
-        qq_table_date = dscon.sql(f"SELECT * FROM {table_date}")
-        qq_table_product_category = dscon.sql(
-            f"SELECT * FROM {table_product_category}"
-        )
-        qq_table_product_subcategory = dscon.sql(
-            f"SELECT * FROM {table_product_subcategory}"
-        )
-        qq_table_product = dscon.sql(f"SELECT * FROM {table_product}")
-        qq_table_sales_reseller = dscon.sql(
-            f"SELECT * FROM {table_sales_reseller}"
-        )
-        qq_table_sales_internet = dscon.sql(
-            f"SELECT * FROM {table_sales_internet}"
-        )
+        # qq_table_date = con.sql(f"SELECT * FROM {table_date}")
+        # qq_table_product_category = con.sql(
+        #     f"SELECT * FROM {table_product_category}"
+        # )
+        # qq_table_product_subcategory = con.sql(
+        #     f"SELECT * FROM {table_product_subcategory}"
+        # )
+        # qq_table_product = con.sql(f"SELECT * FROM {table_product}")
+        # qq_table_sales_reseller = con.sql(
+        #     f"SELECT * FROM {table_sales_reseller}"
+        # )
+        # qq_table_sales_internet = con.sql(
+        #     f"SELECT * FROM {table_sales_internet}"
+        # )
 
     elif input_data_source.value == "2":
         dscon = ibis.postgres.connect(
@@ -442,6 +471,13 @@ def con_settings(input_data_source):
             port=os.environ["SUPABASE_PORT"],
         )
     return (
+        con,
+        csv_table_date,
+        csv_table_internet_sales,
+        csv_table_product,
+        csv_table_product_category,
+        csv_table_product_subcategory,
+        csv_table_reseller_sales,
         dscon,
         table_date,
         table_product,
@@ -450,6 +486,37 @@ def con_settings(input_data_source):
         table_sales_internet,
         table_sales_reseller,
     )
+
+
+@app.cell
+def _(
+    con,
+    csv_table_date,
+    csv_table_internet_sales,
+    csv_table_product,
+    csv_table_product_category,
+    csv_table_product_subcategory,
+    csv_table_reseller_sales,
+    input_data_source,
+    input_refresh_source,
+):
+    mo.stop(not input_refresh_source.value)
+
+    if input_data_source.value == "1":
+        con.drop_table("DimDate")
+        con.drop_table("DimProductCategory")
+        con.drop_table("DimProductSubcategory")
+        con.drop_table("DimProduct")
+        con.drop_table("FactResellerSales")
+        con.drop_table("FactInternetSales")
+
+        con.create_table("DimDate", csv_table_date)
+        con.create_table("DimProductCategory", csv_table_product_category)
+        con.create_table("DimProductSubcategory", csv_table_product_subcategory)
+        con.create_table("DimProduct", csv_table_product)
+        con.create_table("FactResellerSales", csv_table_reseller_sales)
+        con.create_table("FactInternetSales", csv_table_internet_sales)
+    return
 
 
 @app.cell
@@ -516,7 +583,7 @@ def sales_channels(
 
 @app.cell
 def product_categories(
-    dscon,
+    con,
     input_data_source,
     input_product_category_label,
     product_category_key,
@@ -535,10 +602,10 @@ def product_categories(
         )
 
     elif input_data_source.value == "1":
-        list_category = dscon.sql(f"""
-        SELECT DISTINCT {product_category_name}, {product_category_key}
-        FROM {table_product_category}
-        ORDER BY ProductCategoryKey
+        list_category = con.sql(f"""
+        SELECT DISTINCT "{product_category_name}", "{product_category_key}"
+        FROM "{table_product_category}"
+        ORDER BY "{product_category_key}"
         """).execute()
 
     input_product_category = mo.ui.multiselect.from_series(
@@ -551,7 +618,7 @@ def product_categories(
 
 @app.cell
 def product_subcategories(
-    dscon,
+    con,
     input_data_source,
     input_product_category,
     input_product_subcategory_label,
@@ -584,15 +651,15 @@ def product_subcategories(
     elif input_data_source.value == "1":
         selected_categories = "', '".join(input_product_category.value)
 
-        list_subcategory = dscon.sql(f"""
-        SELECT DISTINCT {product_subcategory_name}, {product_subcategory_key}
-        FROM {table_product_subcategory}
-        WHERE {product_category_key} IN (
-            SELECT {product_category_key}
-            FROM {table_product_category}
-            WHERE {product_category_name} IN ('{selected_categories}')
+        list_subcategory = con.sql(f"""
+        SELECT DISTINCT "{product_subcategory_name}", "{product_subcategory_key}"
+        FROM "{table_product_subcategory}"
+        WHERE "{product_category_key}" IN (
+            SELECT "{product_category_key}"
+            FROM "{table_product_category}"
+            WHERE "{product_category_name}" IN ('{selected_categories}')
         )
-        ORDER BY {product_subcategory_key}
+        ORDER BY "{product_subcategory_key}"
         """).execute()
 
     input_product_subcategory = mo.ui.multiselect.from_series(

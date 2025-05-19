@@ -38,6 +38,18 @@
         ]
       },
       {
+        "position": [
+          1,
+          8,
+          3,
+          2
+        ],
+        "side": "right"
+      },
+      {
+        "position": null
+      },
+      {
         "position": null
       },
       {
@@ -61,7 +73,7 @@
       {
         "position": [
           0,
-          8,
+          10,
           6,
           16
         ]
