@@ -7,6 +7,7 @@
 #     "marimo",
 #     "pandas==2.2.3",
 #     "psycopg[binary]==3.2.9",
+#     "pyobsplot==0.5.3.2",
 # ]
 # ///
 
@@ -31,6 +32,7 @@ with app.setup:
     from decimal import Decimal
     from datetime import date
     import locale
+    import pyobsplot
 
     # Language settings
     input_language = mo.ui.dropdown(
@@ -417,23 +419,23 @@ def con_settings(input_data_source):
 
         # Dimension tables
         con.create_table("DimDate", dscon.table("DimDate"))
-        con.insert("DimDate", dscon.table("DimDate").execute())
+        con.insert("DimDate", con.table("DimDate").execute())
 
         con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
-        con.insert("DimProductCategory", dscon.table("DimProductCategory").execute())
+        con.insert("DimProductCategory", con.table("DimProductCategory").execute())
 
         con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
-        con.insert("DimProductSubcategory", dscon.table("DimProductSubcategory").execute())
+        con.insert("DimProductSubcategory", con.table("DimProductSubcategory").execute())
 
         con.create_table("DimProduct", dscon.table("DimProduct"))
-        con.insert("DimProduct", dscon.table("DimProduct").execute())
+        con.insert("DimProduct", con.table("DimProduct").execute())
 
         # Fact tables
         con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
-        con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())
+        con.insert("FactResellerSales", con.table("FactResellerSales").execute())
 
         con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
-        con.insert("FactInternetSales", dscon.table("FactInternetSales").execute())
+        con.insert("FactInternetSales", con.table("FactInternetSales").execute())
 
         table_date = "DimDate"
         table_product_category = "DimProductCategory"
@@ -952,6 +954,14 @@ def sales_profit_volume(
         )
 
         if input_channel_internet.value:
+            filtered_internet_sales = con.sql(f"""
+            SELECT *
+            FROM "{table_sales_internet}" AS "is"
+            JOIN "{table_date}" AS "d"
+                ON "is"."OrderDateKey" = "d"."DateKey"
+            WHERE "FiscalYear" IN ('{current_fy}', '{previous_fy}');
+            """)
+        
             channel_internet = con.sql(f"""
                 SELECT
                     "FiscalYear",
@@ -985,6 +995,14 @@ def sales_profit_volume(
             previous_volume_channel_internet = 0
 
         if input_channel_resellers.value:
+            filtered_reseller_sales = con.sql(f"""
+            SELECT *
+            FROM "{table_sales_reseller}" AS "rs"
+            JOIN "{table_date}" AS "d"
+                ON "rs"."OrderDateKey" = "d"."DateKey"
+            WHERE "FiscalYear" IN ('{current_fy}', '{previous_fy}');
+            """)
+        
             channel_resellers = con.sql(f"""
                 SELECT
                     "FiscalYear",

@@ -12,6 +12,7 @@ dependencies = [
     "matplotlib>=3.10.1",
     "psycopg[binary]>=3.2.9",
     "pyfuze>=0.5.2",
+    "pyobsplot>=0.5.3.2",
 ]
 [tool.marimo.experimental]
 lsp = true
