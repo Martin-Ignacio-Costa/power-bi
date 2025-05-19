@@ -543,38 +543,6 @@ def _(
 
 
 @app.cell
-def relationships():
-    # Table relationships for use in inputs, filtering and analysis
-
-    # category_subcategory_product = dscon.sql(f"""
-    # SELECT
-    # {table_product_category}.ProductCategoryKey,
-    # {table_product_category}.{product_category_name},
-    # {table_product_subcategory}.ProductSubcategoryKey,
-    # {table_product_subcategory}.{product_subcategory_name},
-    # {table_product}.ProductKey,
-    # {table_product}.{product_name}
-    # FROM {table_product_category}
-    # JOIN {table_product_subcategory}
-    #     ON {table_product_category}.ProductCategoryKey = {table_product_subcategory}.ProductCategoryKey
-    # JOIN {table_product}
-    #     ON {table_product_subcategory}.ProductSubcategoryKey = {table_product}.ProductSubcategoryKey
-    # ORDER BY {table_product_category}.{product_category_name},
-    # {table_product_subcategory}.{product_subcategory_name},
-    # {table_product}.{product_name}
-    # """).execute()
-
-    # if "category_subcategory_product" in con.list_tables():
-    #     con.drop_table("category_subcategory_product")
-    # con.create_table(
-    #     "category_subcategory_product",
-    #     category_subcategory_product,
-    # )
-    # table_category_subcategory_product = con.table("category_subcategory_product")
-    return
-
-
-@app.cell
 def fiscal_year(input_fiscal_year_label):
     list_fiscalyear = {
         "FY2018": "2018",
@@ -674,14 +642,24 @@ def product_subcategories(
     elif input_data_source.value == "1":
         selected_categories = "', '".join(input_product_category.value)
 
+        # list_subcategory = con.sql(f"""
+        # SELECT DISTINCT "{product_subcategory_name}", "{product_subcategory_key}"
+        # FROM "{table_product_subcategory}"
+        # WHERE "{product_category_key}" IN (
+        #     SELECT "{product_category_key}"
+        #     FROM "{table_product_category}"
+        #     WHERE "{product_category_name}" IN ('{selected_categories}')
+        # )
+        # ORDER BY "{product_subcategory_key}"
+        # """).execute()
         list_subcategory = con.sql(f"""
-        SELECT DISTINCT "{product_subcategory_name}", "{product_subcategory_key}"
-        FROM "{table_product_subcategory}"
-        WHERE "{product_category_key}" IN (
-            SELECT "{product_category_key}"
-            FROM "{table_product_category}"
-            WHERE "{product_category_name}" IN ('{selected_categories}')
-        )
+        SELECT 
+            DISTINCT "{product_subcategory_name}",
+            "{product_subcategory_key}"
+        FROM "{table_product_subcategory}" AS "ps"
+        JOIN "{table_product_category}" AS "pc"
+            ON  "ps"."{product_category_key}" = "pc"."{product_category_key}"
+        WHERE "{product_category_name}" IN ('{selected_categories}')
         ORDER BY "{product_subcategory_key}"
         """).execute()
 
