@@ -421,28 +421,28 @@ def con_settings(input_data_source):
         )
 
         # Dimension tables
-        table_date = con.create_table("DimDate", dscon.table("DimDate"))
+        con.create_table("DimDate", dscon.table("DimDate"))
         con.insert("DimDate", dscon.table("DimDate").execute())
         table_date = "DimDate"
 
-        table_product_category = con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
+        con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
         con.insert("DimProductCategory", dscon.table("DimProductCategory").execute())
         table_product_category = "DimProductCategory"
 
-        table_product_subcategory = con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
+        con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
         con.insert("DimProductSubcategory", dscon.table("DimProductSubcategory").execute())
         table_product_subcategory = "DimProductSubcategory"
 
-        table_product = con.create_table("DimProduct", dscon.table("DimProduct"))
+        con.create_table("DimProduct", dscon.table("DimProduct"))
         con.insert("DimProduct", dscon.table("DimProduct").execute())
         table_product = "DimProduct"
 
         # # Fact tables
-        table_sales_reseller = con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
+        con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
         con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())
         table_sales_reseller = "FactResellerSales"
 
-        table_sales_internet = con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
+        con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
         con.insert("FactInternetSales", dscon.table("FactInternetSales").execute())
         table_sales_internet = "FactInternetSales"
 
@@ -478,6 +478,7 @@ def con_settings(input_data_source):
         csv_table_product_category,
         csv_table_product_subcategory,
         csv_table_reseller_sales,
+        dscon,
         table_date,
         table_product,
         table_product_category,
@@ -496,6 +497,7 @@ def _(
     csv_table_product_category,
     csv_table_product_subcategory,
     csv_table_reseller_sales,
+    dscon,
     input_data_source,
     input_refresh_source,
 ):
@@ -515,6 +517,27 @@ def _(
         con.create_table("DimProduct", csv_table_product)
         con.create_table("FactResellerSales", csv_table_reseller_sales)
         con.create_table("FactInternetSales", csv_table_internet_sales)
+
+    if input_data_source.value == "1":
+        con.drop_table("DimDate")
+        con.drop_table("DimProductCategory")
+        con.drop_table("DimProductSubcategory")
+        con.drop_table("DimProduct")
+        con.drop_table("FactResellerSales")
+        con.drop_table("FactInternetSales")
+
+        con.create_table("DimDate", dscon.table("DimDate"))
+        con.insert("DimDate", dscon.table("DimDate").execute())
+        con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
+        con.insert("DimProductCategory", dscon.table("DimProductCategory").execute())  
+        con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
+        con.insert("DimProductSubcategory", dscon.table("DimProductSubcategory").execute())
+        con.create_table("DimProduct", dscon.table("DimProduct"))
+        con.insert("DimProduct", dscon.table("DimProduct").execute()) 
+        con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
+        con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())   
+        con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
+        con.insert("FactInternetSales", dscon.table("FactInternetSales").execute()) 
     return
 
 
