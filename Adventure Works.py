@@ -419,23 +419,29 @@ def con_settings(input_data_source):
 
         # Dimension tables
         con.create_table("DimDate", dscon.table("DimDate"))
-        con.insert("DimDate", con.table("DimDate").execute())
+        con.insert("DimDate", dscon.table("DimDate").execute())
 
         con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
-        con.insert("DimProductCategory", con.table("DimProductCategory").execute())
+        con.insert(
+            "DimProductCategory", dscon.table("DimProductCategory").execute()
+        )
 
-        con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
-        con.insert("DimProductSubcategory", con.table("DimProductSubcategory").execute())
+        con.create_table(
+            "DimProductSubcategory", dscon.table("DimProductSubcategory")
+        )
+        con.insert(
+            "DimProductSubcategory", dscon.table("DimProductSubcategory").execute()
+        )
 
         con.create_table("DimProduct", dscon.table("DimProduct"))
-        con.insert("DimProduct", con.table("DimProduct").execute())
+        con.insert("DimProduct", dscon.table("DimProduct").execute())
 
         # Fact tables
         con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
-        con.insert("FactResellerSales", con.table("FactResellerSales").execute())
+        con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())
 
         con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
-        con.insert("FactInternetSales", con.table("FactInternetSales").execute())
+        con.insert("FactInternetSales", dscon.table("FactInternetSales").execute())
 
         table_date = "DimDate"
         table_product_category = "DimProductCategory"
@@ -527,15 +533,21 @@ def _(
         con.create_table("DimDate", dscon.table("DimDate"))
         con.insert("DimDate", dscon.table("DimDate").execute())
         con.create_table("DimProductCategory", dscon.table("DimProductCategory"))
-        con.insert("DimProductCategory", dscon.table("DimProductCategory").execute())  
-        con.create_table("DimProductSubcategory", dscon.table("DimProductSubcategory"))
-        con.insert("DimProductSubcategory", dscon.table("DimProductSubcategory").execute())
+        con.insert(
+            "DimProductCategory", dscon.table("DimProductCategory").execute()
+        )
+        con.create_table(
+            "DimProductSubcategory", dscon.table("DimProductSubcategory")
+        )
+        con.insert(
+            "DimProductSubcategory", dscon.table("DimProductSubcategory").execute()
+        )
         con.create_table("DimProduct", dscon.table("DimProduct"))
-        con.insert("DimProduct", dscon.table("DimProduct").execute()) 
+        con.insert("DimProduct", dscon.table("DimProduct").execute())
         con.create_table("FactResellerSales", dscon.table("FactResellerSales"))
-        con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())   
+        con.insert("FactResellerSales", dscon.table("FactResellerSales").execute())
         con.create_table("FactInternetSales", dscon.table("FactInternetSales"))
-        con.insert("FactInternetSales", dscon.table("FactInternetSales").execute()) 
+        con.insert("FactInternetSales", dscon.table("FactInternetSales").execute())
     return
 
 
@@ -743,25 +755,6 @@ def input_filters(
 
 
 @app.cell
-def _(DimDate, con):
-    _df = mo.sql(
-        f"""
-        SELECT 
-            "DateKey",
-            "DayNumberOfMonth",
-            "MonthNumberOfYear",
-            "CalendarYear"
-        FROM "DimDate"
-        WHERE "FiscalYear" = '2018'
-        ORDER BY "DateKey" ASC
-        LIMIT 1;
-        """,
-        engine=con
-    )
-    return
-
-
-@app.cell
 def fy_dates(con, input_data_source, input_fiscal_year, table_date):
     current_fy = int(input_fiscal_year.value)
     previous_fy = current_fy - 1
@@ -961,7 +954,7 @@ def sales_profit_volume(
                 ON "is"."OrderDateKey" = "d"."DateKey"
             WHERE "FiscalYear" IN ('{current_fy}', '{previous_fy}');
             """)
-        
+
             channel_internet = con.sql(f"""
                 SELECT
                     "FiscalYear",
@@ -1002,7 +995,7 @@ def sales_profit_volume(
                 ON "rs"."OrderDateKey" = "d"."DateKey"
             WHERE "FiscalYear" IN ('{current_fy}', '{previous_fy}');
             """)
-        
+
             channel_resellers = con.sql(f"""
                 SELECT
                     "FiscalYear",
