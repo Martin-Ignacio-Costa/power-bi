@@ -180,11 +180,7 @@ def _(input_data_source):
 
 
 @app.cell
-def con_settings(
-    input_data_source,
-    product_category_key,
-    product_subcategory_key,
-):
+def con_settings(input_data_source):
     # Settings for database and csv connections
 
     con = ibis.duckdb.connect()
@@ -394,12 +390,12 @@ def con_settings(
         table_sales_internet = dscon.create_table(
             "FactInternetSales", csv_table_internet_sales
         )
-        table_category_subcategory_product = con.create_table(
-            "DimCategorySubcategoryProduct",
-            table_product_category.join(
-                table_product_subcategory, [product_category_key]
-            ).join(table_product, [product_subcategory_key]),
-        )
+        # table_category_subcategory_product = con.create_table(
+        #     "DimCategorySubcategoryProduct",
+        #     table_product_category.join(
+        #         table_product_subcategory, [product_category_key]
+        #     ).join(table_product, [product_subcategory_key]),
+        # )
 
     elif input_data_source.value == "1":
         dscon = ibis.mssql.connect(
