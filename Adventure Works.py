@@ -32,7 +32,7 @@ with app.setup:
     from decimal import Decimal
     from datetime import date
     import locale
-    import pyobsplot
+    from pyobsplot import Plot
 
     # Language settings
     input_language = mo.ui.dropdown(
@@ -400,12 +400,6 @@ def con_settings(input_data_source):
         table_sales_internet = con.create_table(
             "FactInternetSales", csv_table_internet_sales
         )
-        # table_category_subcategory_product = con.create_table(
-        #     "DimCategorySubcategoryProduct",
-        #     table_product_category.join(
-        #         table_product_subcategory, [product_category_key]
-        #     ).join(table_product, [product_subcategory_key]),
-        # )
 
     elif input_data_source.value == "1":
         dscon = ibis.mssql.connect(
@@ -1327,6 +1321,17 @@ def _(sales_df):
 @app.cell
 def _(chart):
     chart
+    return
+
+
+@app.cell
+def _(sales_df):
+    Plot.plot(
+        {
+            "grid": True,
+            "marks": [Plot.barY(sales_df, {"x": "Month", "y": "total_sales"})],
+        }
+    )
     return
 
 
